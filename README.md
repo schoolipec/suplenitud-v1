@@ -24,6 +24,10 @@ py -m http.server 4173
 
 Abrir `http://127.0.0.1:4173/`. La historia pastoral esta disponible en `/pastors/`.
 
+## Repositorio
+
+El código de la v1 se mantiene en el repositorio privado [schoolipec/suplenitud-v1](https://github.com/schoolipec/suplenitud-v1), rama `main`.
+
 ## Proxima Revision
 
 Revisar visualmente la demo antes de programar cualquier migracion a `suplenitud.com`. Las futuras publicaciones deben sincronizar recursivamente esta carpeta hacia `/opt/suplenitud-demo/site`, excluir documentacion y secretos, y conservar `suplenitud.com` sin cambios hasta una autorizacion de migracion separada.
