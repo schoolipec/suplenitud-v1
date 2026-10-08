@@ -12,7 +12,7 @@ El sitio esta publicado para revision en `https://demo.suplenitud.com` desde el 
 - La pagina principal y la ruta `pastors/` responden `HTTPS 200` con certificado valido.
 - Actualmente el dominio principal conserva MyWebsite NOW de IONOS; no cambiar A/AAAA de `@` o `www` sin un plan de migracion aprobado.
 
-La maqueta local incluye inicio, contacto con mapa, formulario de oracion, selector de idioma (ingles, espanol, portugues, coreano y aleman), tema claro/oscuro y la ruta local `/pastors/`. Esta ultima resume la trayectoria pastoral de Mario y Adriana Alsina con referencias publicas a Global Harvest Theological Institute. Tambien reserva una seccion de Instagram: por ahora enlaza al perfil publico de Global Harvest Online; no consume ni replica publicaciones hasta definir una integracion autorizada.
+La maqueta local incluye inicio, contacto con mapa, formulario de oracion, selector de idioma (ingles, espanol, portugues, coreano y aleman), tema claro/oscuro y la ruta local `/pastors/`. Esta ultima resume la trayectoria pastoral de Mario y Adriana Alsina con referencias publicas a Global Harvest Theological Institute. Tambien reserva una seccion de Instagram: por ahora enlaza al perfil publico de Pastor Mario Alsina; no consume ni replica publicaciones hasta definir una integracion autorizada.
 
 ## Ejecucion local
 
