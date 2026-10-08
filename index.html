@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Iglesia Plenitud en Cristo - Las Vegas, Nevada." />
+    <title>Iglesia Plenitud en Cristo</title>
+    <link rel="icon" href="assets/logo-transparent.png?v=3" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="overrides.css" />
+    <link rel="stylesheet" href="social.css" />
+    <link rel="stylesheet" href="mobile-header.css" />
+  </head>
+  <body>
+    <header class="site-header" id="top">
+      <a class="brand" href="#top" aria-label="Iglesia Plenitud en Cristo, home"><img class="logo-light" src="assets/logo-transparent.png?v=3" alt="Iglesia Plenitud en Cristo" /><img class="logo-dark" src="assets/logo-dark.png?v=1" alt="" /></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav"><span></span><span></span><span></span><span class="sr-only">Open menu</span></button>
+      <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation">
+        <a href="#home" data-i18n="navHome">Home</a>
+        <a href="#about" data-i18n="navAbout">About</a>
+        <a href="/pastors/" data-i18n="navPastors">Pastors</a>
+        <a href="#contact" data-i18n="navContact">Contact us</a>
+        <a class="live-link" href="#live"><i></i><span data-i18n="navLive">Live</span></a>
+      </nav>
+      <div class="header-controls">
+        <div class="locale-picker"><button id="language" type="button" aria-expanded="false"><img class="flag" src="https://flagcdn.com/us.svg" alt="" /><span>EN</span></button><div class="locale-menu"><button data-locale="en"><img class="flag" src="https://flagcdn.com/us.svg" alt="" /><span>English</span><b>✓</b></button><button data-locale="es"><img class="flag" src="https://flagcdn.com/mx.svg" alt="" /><span>Español</span><b>✓</b></button><button data-locale="ko"><img class="flag" src="https://flagcdn.com/kr.svg" alt="" /><span>한국어</span><b>✓</b></button><button data-locale="pt"><img class="flag" src="https://flagcdn.com/br.svg" alt="" /><span>Português</span><b>✓</b></button><button data-locale="de"><img class="flag" src="https://flagcdn.com/de.svg" alt="" /><span>Deutsch</span><b>✓</b></button></div></div>
+        <button class="theme-toggle" type="button" aria-label="Toggle color theme"><span aria-hidden="true">☀</span></button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="home">
+        <div class="hero-copy reveal">
+          <p class="eyebrow" data-i18n="eyebrow">A place to grow, belong, and serve</p>
+          <h1 data-i18n="heroTitle">Grow in your spiritual life.</h1>
+          <p class="intro" data-i18n="heroText">We are here to walk with you, listen with care, and pray sincerely for your life.</p>
+          <div class="actions"><a class="button primary" href="#contact" data-i18n="prayerAction">Request prayer</a><a class="text-link" href="#groups" data-i18n="groupsAction">Explore our groups <span>→</span></a></div>
+        </div>
+        <div class="hero-art"><img src="assets/hero-community.png" alt="Familias de la comunidad acercándose a una iglesia" /></div>
+      </section>
+
+      <section class="live-panel" id="live" aria-labelledby="live-title">
+        <div><p class="live-status"><i></i><span data-i18n="liveStatus">Live now</span></p><h2 id="live-title" data-i18n="liveTitle">Join us in today’s service</h2><p data-i18n="liveText">The live service will appear here whenever the church is broadcasting.</p></div>
+        <a class="button light" href="#" data-i18n="watchLive">Watch live</a>
+      </section>
+
+      <section class="section services" id="groups">
+        <div class="section-heading"><p class="eyebrow" data-i18n="communityLabel">Our community</p><h2 data-i18n="communityTitle">There is a place for you here.</h2></div>
+        <div class="service-grid">
+          <article><span class="service-icon" aria-hidden="true">♙</span><h3 data-i18n="smallTitle">Small groups</h3><p data-i18n="smallText">Small groups, also known as cells, are a fundamental part of our service to God.</p><a href="#contact" data-i18n="join">Join a group</a></article>
+          <article><span class="service-icon" aria-hidden="true">✦</span><h3 data-i18n="trainingTitle">Training</h3><p data-i18n="trainingText">In Jesus we see grace and truth in fullness. We grow by looking to Him.</p><a href="#contact" data-i18n="learn">Learn more</a></article>
+          <article><span class="service-icon" aria-hidden="true">♡</span><h3 data-i18n="plenitudeTitle">Plenitude groups</h3><p data-i18n="plenitudeText">Marriage, youth, health, and family - every part of life is explored in light of Scripture.</p><a href="#contact" data-i18n="discover">Discover groups</a></article>
+        </div>
+      </section>
+
+      <section class="section about" id="about">
+        <div class="about-image"><img src="assets/small-group.png" alt="Grupo pequeño estudiando la Biblia y conversando" /></div>
+        <div><p class="eyebrow" data-i18n="aboutLabel">Get to know us</p><h2 data-i18n="aboutTitle">Rooted in Christ. Open to you.</h2><p data-i18n="aboutText">We seek to be a healthy, biblical, spiritual, and multiplying church: reaching lives, reconciling people with God, forming disciples, and sending them to serve.</p><a class="text-link" href="/pastors/" data-i18n="meetPastors">Meet our pastors <span>→</span></a></div>
+      </section>
+
+      <section class="section contact" id="contact">
+        <div><p class="eyebrow" data-i18n="contactLabel">We would love to meet you</p><h2 data-i18n="contactTitle">Come as you are.</h2><p class="address">5000 Spencer St<br />Las Vegas, NV 89119</p><a class="button secondary" href="https://www.google.com/maps/dir/?api=1&destination=5000+Spencer+St,+Las+Vegas,+NV+89119" target="_blank" rel="noreferrer" data-i18n="directions">Get directions</a></div>
+        <div class="map-wrap" style="min-height:350px;overflow:hidden;border:1px solid #397195;border-radius:18px"><iframe title="Iglesia Plenitud en Cristo - 5000 Spencer St, Las Vegas" style="display:block;width:100%;height:350px;border:0" src="https://www.google.com/maps?q=5000%20Spencer%20St%2C%20Las%20Vegas%2C%20NV%2089119&z=15&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+        <form class="prayer-form" id="prayer-form">
+          <h3 data-i18n="prayerTitle">How can we pray for you?</h3>
+          <label><span data-i18n="name">Name</span><input name="name" required autocomplete="name" /></label>
+          <label><span data-i18n="email">Email</span><input type="email" name="email" required autocomplete="email" /></label>
+          <label><span data-i18n="request">Prayer request</span><textarea name="request" required rows="4"></textarea></label>
+          <button class="button primary" type="submit" data-i18n="send">Send request</button><p class="form-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section class="culture section"><p class="eyebrow" data-i18n="visionLabel">Our vision</p><h2 data-i18n="visionTitle">Reach, strengthen, form, and send.</h2><p class="vision-copy" data-i18n="visionText">Reaching homes to proclaim Jesus Christ, reconciling nonbelievers with God, and forming them as disciples who live and serve in the Holy Spirit.</p><div class="culture-grid"><article><strong class="culture-icon">⌂</strong><h3 data-i18n="reach">Reach</h3><p data-i18n="reachText">We bring Christ’s love to every home.</p></article><article><strong class="culture-icon">♙</strong><h3 data-i18n="strengthen">Strengthen</h3><p data-i18n="strengthenText">We accompany and strengthen people in faith and unity.</p></article><article><strong class="culture-icon">✦</strong><h3 data-i18n="form">Form</h3><p data-i18n="formText">Disciples with mature service and strong character.</p></article><article><strong class="culture-icon">◎</strong><h3 data-i18n="send">Send</h3><p data-i18n="sendText">We inspire people to impact the world with Christ’s love.</p></article></div><div class="pillars"><span data-i18n="presence">Presence</span><span data-i18n="character">Character</span><span data-i18n="service">Service</span></div><blockquote data-i18n="cultureQuote">“We live in God’s presence, walk in obedience, celebrate with joy and faith, love and care with integrity, welcome with hospitality, and serve with humility.”</blockquote><p class="schedule" data-i18n="schedule">Sundays 6 PM · Wednesdays 7 PM · 702 328 2536</p></section>
+      <section class="social-panel"><div><p class="eyebrow" data-i18n="instagramLabel">Stay connected</p><h2 data-i18n="instagramTitle">Follow our community on Instagram.</h2><p data-i18n="instagramText">See news, moments of faith, and upcoming activities from our community.</p></div><a class="button secondary" href="https://www.instagram.com/globalharvestonline/" target="_blank" rel="noreferrer" data-i18n="instagramAction">Open Instagram</a></section>
+    </main>
+    <footer><img src="assets/logo-dark.png?v=1" alt="Iglesia Plenitud en Cristo" /><p>5000 Spencer St, Las Vegas, NV 89119</p><p>702 328 2536</p><small>© <span id="year"></span> Iglesia Plenitud en Cristo</small></footer>
+
+    <dialog id="welcome-modal"><button class="modal-close" aria-label="Close welcome message">×</button><p class="eyebrow" data-i18n="modalLabel">A word for you</p><blockquote data-i18n="modalQuote">“The Lord is close to all who call on Him in truth.”</blockquote><p data-i18n="modalRef">Psalm 145:18</p></dialog>
+    <script src="script.js"></script>
+    <script src="home-extras.js"></script>
+  </body>
+</html>

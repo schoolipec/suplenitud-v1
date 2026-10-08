@@ -1,0 +1,19 @@
+# Local tools and editor state
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Runtime configuration and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Generated local output
+node_modules/
+dist/
+coverage/
