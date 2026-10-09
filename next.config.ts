@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  output: "standalone",
   async redirects() {
     return [
       {source: "/index.html", destination: "/", permanent: true},
