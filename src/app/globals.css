@@ -1,3 +1,7 @@
+@import "../styles/legacy/styles.css";
+@import "../styles/legacy/overrides.css";
+@import "../styles/legacy/mobile-header.css";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
