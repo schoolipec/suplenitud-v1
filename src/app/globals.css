@@ -2,6 +2,7 @@
 @import "../styles/legacy/overrides.css";
 @import "../styles/legacy/mobile-header.css";
 @import "../styles/legacy/social.css";
+@import "../styles/legacy/pastors.css";
 
 :root {
   --background: #ffffff;
