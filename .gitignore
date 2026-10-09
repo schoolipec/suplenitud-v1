@@ -1,0 +1,13 @@
+# Environment files and local secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies and build outputs
+node_modules/
+.next/
+out/
+
+# Logs and local tooling
+*.log
+.DS_Store
