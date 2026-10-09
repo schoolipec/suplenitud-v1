@@ -1,69 +1,13 @@
 import Image from "next/image";
-import styles from "./page.module.css";
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+  return <main id="main">
+    <section className="hero" id="home"><div className="hero-copy reveal"><p className="eyebrow">A place to grow, belong, and serve</p><h1>Grow in your spiritual life.</h1><p className="intro">We are here to walk with you, listen with care, and pray sincerely for your life.</p><div className="actions"><a className="button primary" href="#contact">Request prayer</a><a className="text-link" href="#groups">Explore our groups <span>→</span></a></div></div><div className="hero-art"><Image src="/assets/hero-community.png" alt="Familias de la comunidad acercándose a una iglesia" width={1672} height={941} priority /></div></section>
+    <section className="live-panel" id="live"><div><p className="live-status"><i />Live now</p><h2>Join us in today’s service</h2><p>The live service will appear here whenever the church is broadcasting.</p></div><a className="button light" href="#live">Watch live</a></section>
+    <section className="section services" id="groups"><div className="section-heading"><p className="eyebrow">Our community</p><h2>There is a place for you here.</h2></div><div className="service-grid"><article><span className="service-icon">♙</span><h3>Small groups</h3><p>Small groups, also known as cells, are a fundamental part of our service to God.</p><a href="#contact">Join a group</a></article><article><span className="service-icon">✦</span><h3>Training</h3><p>In Jesus we see grace and truth in fullness. We grow by looking to Him.</p><a href="#contact">Learn more</a></article><article><span className="service-icon">♡</span><h3>Plenitude groups</h3><p>Marriage, youth, health, and family — every part of life is explored in light of Scripture.</p><a href="#contact">Discover groups</a></article></div></section>
+    <section className="section about" id="about"><div className="about-image"><Image src="/assets/small-group.png" alt="Grupo pequeño estudiando la Biblia y conversando" width={1536} height={1024} /></div><div><p className="eyebrow">Get to know us</p><h2>Rooted in Christ. Open to you.</h2><p>We seek to be a healthy, biblical, spiritual, and multiplying church: reaching lives, reconciling people with God, forming disciples, and sending them to serve.</p><a className="text-link" href="/pastors/">Meet our pastors <span>→</span></a></div></section>
+    <section className="section contact" id="contact"><div><p className="eyebrow">We would love to meet you</p><h2>Come as you are.</h2><p className="address">5000 Spencer St<br />Las Vegas, NV 89119</p><a className="button secondary" href="https://www.google.com/maps/dir/?api=1&destination=5000+Spencer+St,+Las+Vegas,+NV+89119">Get directions</a></div><form className="prayer-form"><h3>How can we pray for you?</h3><label><span>Name</span><input disabled /></label><label><span>Email</span><input disabled /></label><label><span>Prayer request</span><textarea rows={4} disabled /></label><button className="button primary" type="button" disabled>Send request</button><p className="form-message">Prayer requests are temporarily unavailable. We are preparing this service and will have it available soon.</p></form></section>
+    <section className="culture section"><p className="eyebrow">Our vision</p><h2>Reach, strengthen, form, and send.</h2><p className="vision-copy">Reaching homes to proclaim Jesus Christ, reconciling nonbelievers with God, and forming them as disciples who live and serve in the Holy Spirit.</p></section>
+    <section className="social-panel"><div><p className="eyebrow">Stay connected</p><h2>Follow our community on Instagram.</h2><p>See news, moments of faith, and upcoming activities from our community.</p></div><a className="button secondary" href="https://www.instagram.com/prmarioalsina">Open Instagram</a></section>
+  </main>;
 }
