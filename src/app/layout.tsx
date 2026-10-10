@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import {Footer} from "@/components/site/Footer";
 import {Header} from "@/components/site/Header";
+import {PageViewTracker} from "@/components/analytics/PageViewTracker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,7 +20,7 @@ export const metadata: Metadata = {title: "Iglesia Plenitud en Cristo", descript
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body><Header />{children}<Footer /></body>
+      <body><Header /><PageViewTracker />{children}<Footer /></body>
     </html>
   );
 }
