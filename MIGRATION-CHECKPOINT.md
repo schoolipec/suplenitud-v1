@@ -15,13 +15,12 @@
 - El popup de bendición consulta PostgreSQL después de 30 segundos, se muestra una vez por sesión y respeta la preferencia persistente. Si la base aún no está preparada, no se muestra ni expone un error al visitante.
 - `npm run lint`, `npm run typecheck` y `npm run build` pasaron tras el cierre de código. Las diez rutas canónicas y ambos redirects legacy fueron verificados localmente con respuestas correctas.
 - Existe `deploy/docker-compose.demo.yml` para sustituir únicamente el Nginx de la demo por el contenedor Next.js detrás de Traefik, sin exponer el puerto 3000 ni afectar producción.
-- No se desplegó ni publicó ningún cambio al VPS, `demo.suplenitud.com`, `suplenitud.com` o `www.suplenitud.com`.
+- La demo Next.js está publicada en `https://demo.suplenitud.com/` detrás de Traefik. El contenedor escucha solo internamente en 3000 y usa la base aislada `suplenitud_web`; `suplenitud.com` y `www.suplenitud.com` no fueron modificados.
 
 ## Pendiente obligatorio
 
-1. Ejecutar la migración y el seed únicamente en la nueva base/usuario aislados de la demo; no usar la base ni las credenciales de n8n.
-2. Completar la revisión visual responsive y el flujo popup conectado a la base preparada.
-3. Sustituir controladamente el contenedor Nginx de `demo.suplenitud.com`, validar HTTPS/rutas/SEO/popup/analytics y dejar intactos `suplenitud.com` y `www.suplenitud.com`.
+1. Mantener las credenciales de la base aislada exclusivamente en el archivo de entorno del VPS; no versionarlas ni reutilizarlas.
+2. Para cambios futuros, construir y validar localmente antes de actualizar solo la demo. La producción requiere una fase y autorización independientes.
 
 ## Reglas de continuidad
 
