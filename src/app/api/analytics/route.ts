@@ -1,6 +1,7 @@
 import {NextRequest, NextResponse} from "next/server";
 import {prisma} from "@/lib/db/client";
 import {supportedLocales} from "@/content/locale-copy";
+import {resolveGeo} from "@/lib/analytics/geo";
 
 type AnalyticsPayload = {sessionId?: unknown; path?: unknown; locale?: unknown; referrer?: unknown; deviceType?: unknown};
 
@@ -11,8 +12,9 @@ export async function POST(request: NextRequest) {
   const locale = typeof body.locale === "string" && supportedLocales.includes(body.locale as (typeof supportedLocales)[number]) ? body.locale : "en";
   const referrer = typeof body.referrer === "string" && body.referrer.length <= 255 ? body.referrer : null;
   const deviceType = body.deviceType === "mobile" || body.deviceType === "desktop" ? body.deviceType : null;
+  const geo = resolveGeo(request.headers);
   try {
-    await prisma.analyticsEvent.create({data: {sessionId: body.sessionId, path: body.path, locale, referrer, deviceType}});
+    await prisma.analyticsEvent.create({data: {sessionId: body.sessionId, path: body.path, locale, referrer, deviceType, ...geo}});
   } catch { return new NextResponse(null, {status: 204}); }
   return new NextResponse(null, {status: 204});
 }
