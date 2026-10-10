@@ -11,7 +11,7 @@
 - Los assets y CSS originales se migraron sin alterar a `public/assets/` y `src/styles/legacy/`.
 - Existen Home inicial, ruta `/pastors/`, header/footer compartidos, tema persistente, redirects de rutas HTML antiguas, `robots.txt`, `sitemap.xml`, `.env.example` y Dockerfile standalone.
 - Las rutas localizadas Home/Pastors, su validación de locale y el selector que conserva la página actual están implementados. Los bloques principales de Home ya se sirven en los cinco idiomas; aún faltan los textos secundarios y Pastors.
-- Existe un esquema Prisma aislado y la migración SQL inicial versionada para mensajes de bendición, analytics y suscriptores; no se creó ninguna base de datos ni se ejecutó una migración.
+- Existe un esquema Prisma aislado, la migración SQL inicial y un seed SQL idempotente con el mensaje inicial en los cinco idiomas; no se creó ninguna base de datos ni se ejecutó una migración.
 - El popup de bendición consulta PostgreSQL después de 30 segundos, se muestra una vez por sesión y respeta la preferencia persistente. Si la base aún no está preparada, no se muestra ni expone un error al visitante.
 - `npm run lint`, `npm run typecheck` y `npm run build` pasaron después de cada fase.
 - No se desplegó ni publicó ningún cambio al VPS, `demo.suplenitud.com`, `suplenitud.com` o `www.suplenitud.com`.
