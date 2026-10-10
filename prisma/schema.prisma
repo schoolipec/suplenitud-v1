@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model BlessingMessage {
+  id           String                       @id @default(uuid()) @db.Uuid
+  active       Boolean                      @default(true)
+  priority     Int                          @default(0)
+  publishedAt  DateTime?                    @map("published_at") @db.Timestamptz(6)
+  createdAt    DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  translations BlessingMessageTranslation[]
+
+  @@map("blessing_messages")
+}
+
+model BlessingMessageTranslation {
+  id                 String          @id @default(uuid()) @db.Uuid
+  messageId          String          @map("message_id") @db.Uuid
+  locale             String          @db.VarChar(5)
+  title              String?
+  body               String
+  scriptureReference String?         @map("scripture_reference")
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  message            BlessingMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, locale])
+  @@map("blessing_message_translations")
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  sessionId   String   @map("session_id")
+  path        String
+  locale      String   @db.VarChar(5)
+  countryCode String?  @map("country_code") @db.VarChar(2)
+  countryName String?  @map("country_name")
+  regionCode  String?  @map("region_code")
+  regionName  String?  @map("region_name")
+  city        String?
+  referrer    String?
+  userAgentFamily String? @map("user_agent_family")
+  deviceType  String?  @map("device_type")
+
+  @@index([occurredAt])
+  @@index([locale])
+  @@map("analytics_events")
+}
+
+model Subscriber {
+  id             String    @id @default(uuid()) @db.Uuid
+  email          String    @unique
+  locale         String    @db.VarChar(5)
+  status         String    @default("pending")
+  subscribedAt   DateTime? @map("subscribed_at") @db.Timestamptz(6)
+  unsubscribedAt DateTime? @map("unsubscribed_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("subscribers")
+}

@@ -12,3 +12,9 @@ out/
 # Logs and local tooling
 *.log
 .DS_Store
+
+/src/generated/prisma
+/.agents/
+/.claude/
+/.windsurf/
+/skills-lock.json
