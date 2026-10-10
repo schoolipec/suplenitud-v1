@@ -1,7 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import type {Metadata} from "next";
 import {homeCopy, type SupportedLocale} from "@/content/locale-copy";
 import {BlessingMessageModal} from "@/components/blessing/BlessingMessageModal";
+
+const baseUrl = "https://demo.suplenitud.com";
+export const metadata: Metadata = {title: "Iglesia Plenitud en Cristo | Las Vegas", description: "Iglesia Plenitud en Cristo: a place to grow, belong, and serve in Las Vegas.", alternates: {canonical: `${baseUrl}/`, languages: {en: `${baseUrl}/`, es: `${baseUrl}/es/`, pt: `${baseUrl}/pt/`, ko: `${baseUrl}/ko/`, de: `${baseUrl}/de/`}}, openGraph: {url: `${baseUrl}/`, locale: "en"}};
 
 export default function Home({locale = "en"}: {locale?: SupportedLocale}) {
   const t = homeCopy[locale];
