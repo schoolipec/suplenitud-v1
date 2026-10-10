@@ -1,0 +1,22 @@
+services:
+  suplenitud-demo:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: suplenitud-demo-nextjs:local
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: ${DATABASE_URL}
+      NEXT_PUBLIC_SITE_URL: https://demo.suplenitud.com
+      GEO_TRUST_PROXY_HEADERS: ${GEO_TRUST_PROXY_HEADERS:-false}
+    networks:
+      n8n-internal:
+        aliases:
+          - suplenitud-demo
+
+networks:
+  n8n-internal:
+    external: true
+    name: n8n-internal
