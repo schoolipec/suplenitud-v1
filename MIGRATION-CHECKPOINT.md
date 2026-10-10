@@ -10,6 +10,9 @@
 - El nuevo proyecto usa Next.js 16.4, React 19, TypeScript y `next-intl`.
 - Los assets y CSS originales se migraron sin alterar a `public/assets/` y `src/styles/legacy/`.
 - Existen Home inicial, ruta `/pastors/`, header/footer compartidos, tema persistente, redirects de rutas HTML antiguas, `robots.txt`, `sitemap.xml`, `.env.example` y Dockerfile standalone.
+- Las rutas localizadas Home/Pastors, su validación de locale y el selector que conserva la página actual están implementados. La traducción completa del contenido aún está pendiente.
+- Existe un esquema Prisma local aislado para mensajes de bendición, analytics y suscriptores; no se creó ninguna base de datos ni se ejecutó una migración.
+- Existe el componente cliente del popup de bendición con espera única de 30 segundos y preferencia persistente; todavía falta conectarlo a la fuente PostgreSQL y sus traducciones.
 - `npm run lint`, `npm run typecheck` y `npm run build` pasaron después de cada fase.
 - No se desplegó ni publicó ningún cambio al VPS, `demo.suplenitud.com`, `suplenitud.com` o `www.suplenitud.com`.
 
