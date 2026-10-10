@@ -9,7 +9,7 @@ export const metadata: Metadata = {title: "Iglesia Plenitud en Cristo | Las Vega
 
 export default function Home({locale = "en"}: {locale?: SupportedLocale}) {
   const t = homeCopy[locale], extra = homeExtraCopy[locale];
-  return <main id="main">
+  return <main id="main" lang={locale}>
     <section className="hero" id="home"><div className="hero-copy reveal"><p className="eyebrow">{t.eyebrow}</p><h1>{t.heroTitle}</h1><p className="intro">{t.heroText}</p><div className="actions"><a className="button primary" href="#contact">{t.prayerAction}</a><a className="text-link" href="#groups">{t.groupsAction}</a></div></div><div className="hero-art"><Image src="/assets/hero-community.png" alt="Familias de la comunidad acercándose a una iglesia" width={1672} height={941} priority /></div></section>
     <section className="live-panel" id="live"><div><p className="live-status"><i />{t.liveStatus}</p><h2>{t.liveTitle}</h2><p>{t.liveText}</p></div><a className="button light" href="#live">{t.watchLive}</a></section>
     <section className="section services" id="groups"><div className="section-heading"><p className="eyebrow">{t.communityLabel}</p><h2>{t.communityTitle}</h2></div><div className="service-grid"><article><span className="service-icon">♙</span><h3>{extra.smallTitle}</h3><p>{extra.smallText}</p><a href="#contact">{extra.join}</a></article><article><span className="service-icon">✦</span><h3>{extra.trainingTitle}</h3><p>{extra.trainingText}</p><a href="#contact">{extra.learn}</a></article><article><span className="service-icon">♡</span><h3>{extra.plenitudeTitle}</h3><p>{extra.plenitudeText}</p><a href="#contact">{extra.discover}</a></article></div></section>
