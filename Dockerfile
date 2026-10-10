@@ -7,6 +7,7 @@ FROM node:26-alpine AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+RUN npm run prisma:generate
 RUN npm run build
 
 FROM node:26-alpine AS runner
