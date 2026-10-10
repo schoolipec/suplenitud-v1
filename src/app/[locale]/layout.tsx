@@ -3,6 +3,7 @@ import type {Metadata} from "next";
 import {hasLocale} from "next-intl";
 import {setRequestLocale} from "next-intl/server";
 import {routing} from "@/i18n/routing";
+import {DocumentLocale} from "@/components/site/DocumentLocale";
 
 export const instant = false;
 
@@ -20,5 +21,5 @@ export default async function LocaleLayout({children, params}: LayoutProps<"/[lo
   const {locale} = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
-  return children;
+  return <><DocumentLocale locale={locale}/>{children}</>;
 }
