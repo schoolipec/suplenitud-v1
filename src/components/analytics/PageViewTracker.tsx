@@ -18,7 +18,7 @@ export function PageViewTracker() {
     const firstSegment = pathname.split("/").filter(Boolean)[0];
     const locale = firstSegment && locales.has(firstSegment) ? firstSegment : "en";
     const deviceType = window.matchMedia("(max-width: 760px)").matches ? "mobile" : "desktop";
-    void fetch("/api/analytics", {method: "POST", headers: {"content-type": "application/json"}, keepalive: true, body: JSON.stringify({sessionId, path: pathname, locale, referrer: referrerDomain(), deviceType})});
+    void fetch("/api/analytics/", {method: "POST", headers: {"content-type": "application/json"}, keepalive: true, body: JSON.stringify({sessionId, path: pathname, locale, referrer: referrerDomain(), deviceType})});
   }, [pathname]);
   return null;
 }
