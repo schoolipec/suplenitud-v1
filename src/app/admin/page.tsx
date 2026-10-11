@@ -12,6 +12,8 @@ export const instant = false;
 export default async function AdminPage() {
   const session = await auth.api.getSession({headers: await headers()});
   if (!session?.user) redirect("/admin/sign-in");
+  const currentUser = await prisma.user.findUnique({where: {id: session.user.id}, select: {mustChangePassword: true}});
+  if (currentUser?.mustChangePassword) redirect("/admin/change-password");
 
   const assignments = await prisma.userRole.findMany({
     where: {userId: session.user.id},
