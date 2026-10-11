@@ -40,19 +40,19 @@ model BlessingMessageTranslation {
 }
 
 model AnalyticsEvent {
-  id          String   @id @default(uuid()) @db.Uuid
-  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
-  sessionId   String   @map("session_id")
-  path        String
-  locale      String   @db.VarChar(5)
-  countryCode String?  @map("country_code") @db.VarChar(2)
-  countryName String?  @map("country_name")
-  regionCode  String?  @map("region_code")
-  regionName  String?  @map("region_name")
-  city        String?
-  referrer    String?
-  userAgentFamily String? @map("user_agent_family")
-  deviceType  String?  @map("device_type")
+  id              String   @id @default(uuid()) @db.Uuid
+  occurredAt      DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  sessionId       String   @map("session_id")
+  path            String
+  locale          String   @db.VarChar(5)
+  countryCode     String?  @map("country_code") @db.VarChar(2)
+  countryName     String?  @map("country_name")
+  regionCode      String?  @map("region_code")
+  regionName      String?  @map("region_name")
+  city            String?
+  referrer        String?
+  userAgentFamily String?  @map("user_agent_family")
+  deviceType      String?  @map("device_type")
 
   @@index([occurredAt])
   @@index([locale])
@@ -70,4 +70,111 @@ model Subscriber {
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("subscribers")
+}
+
+model User {
+  id                 String    @id
+  name               String
+  email              String
+  emailVerified      Boolean   @default(false)
+  image              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  mustChangePassword Boolean?  @default(true)
+  sessions           Session[]
+  accounts           Account[]
+  roles              UserRole[]
+  auditEvents        AuditLog[] @relation("AuditActor")
+
+  @@unique([email])
+  @@map("user")
+}
+
+enum ApplicationRole {
+  SUPER_ADMIN
+  ADMIN
+  TREASURER
+  USHER
+}
+
+model UserRole {
+  id        String          @id @default(uuid()) @db.Uuid
+  userId    String
+  role      ApplicationRole
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([role])
+  @@map("user_roles")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  actorUserId String?   @map("actor_user_id")
+  action      String
+  resource    String
+  resourceId  String?   @map("resource_id")
+  metadata    Json?     @map("metadata")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor       User?     @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([resource, resourceId])
+  @@map("audit_logs")
+}
+
+model BootstrapState {
+  key         String   @id
+  completedAt DateTime @map("completed_at") @db.Timestamptz(6)
+
+  @@map("bootstrap_states")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
 }

@@ -1,6 +1,7 @@
 @import "../styles/legacy/styles.css";
 @import "../styles/legacy/overrides.css";
 @import "../styles/legacy/mobile-header.css";
+
 @import "../styles/legacy/social.css";
 @import "../styles/legacy/pastors.css";
 
@@ -53,3 +54,27 @@ a {
     color-scheme: dark;
   }
 }
+
+.admin-shell {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  padding: 7rem 1.5rem 3rem;
+  background: var(--paper, #fbfaf7);
+}
+
+.admin-card {
+  width: min(100%, 32rem);
+  padding: 2rem;
+  border: 1px solid var(--line, #d8d6cf);
+  border-radius: 1rem;
+  background: var(--card, #fff);
+  color: var(--ink, #16222c);
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 8%);
+}
+
+.admin-eyebrow { color: var(--green, #3b6c4c); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.admin-auth-form { display: grid; gap: .7rem; margin-top: 1.5rem; }
+.admin-auth-form input { min-height: 2.75rem; padding: .6rem .75rem; border: 1px solid var(--line, #d8d6cf); border-radius: .4rem; }
+.admin-auth-form button { min-height: 2.75rem; border: 0; border-radius: .4rem; background: var(--navy, #17273b); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.admin-auth-form button:disabled { cursor: wait; opacity: .7; }

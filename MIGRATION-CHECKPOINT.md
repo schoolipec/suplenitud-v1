@@ -22,6 +22,7 @@
 1. Mantener las credenciales de la base aislada exclusivamente en el archivo de entorno del VPS; no versionarlas ni reutilizarlas.
 2. Para cambios futuros, construir y validar localmente antes de actualizar solo la demo. La producción requiere una fase y autorización independientes.
 3. La evolución aprobada de administración, contenido, peticiones, Telegram/n8n y donaciones está especificada en `docs/superpowers/specs/2026-10-10-admin-prayer-donations-design.md` y su plan de fases. No activar el formulario ni integraciones externas antes de completar sus fases verificadas.
+4. La Fase A tiene código y migración versionados localmente: Better Auth, tablas de identidad/roles/auditoría, `/admin`, y bootstrap único de SuperAdmin. No se aplicó la migración ni se publicó esta fase en demo; seguir `docs/ADMIN-BOOTSTRAP.md` únicamente después de la validación y autorización operativa correspondientes.
 
 ## Reglas de continuidad
 
