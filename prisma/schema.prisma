@@ -153,9 +153,22 @@ model PrayerRequest {
   status            PrayerRequestStatus @default(NEW)
   createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  assignments       PrayerAssignment[]
 
   @@index([status, createdAt])
   @@map("prayer_requests")
+}
+
+model PrayerAssignment {
+  id              String        @id @default(uuid()) @db.Uuid
+  requestId       String        @map("request_id") @db.Uuid
+  usherName       String        @map("usher_name")
+  assignedById    String        @map("assigned_by_id")
+  assignedAt      DateTime      @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  request         PrayerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("prayer_assignments")
 }
 
 model ContentBlock {
