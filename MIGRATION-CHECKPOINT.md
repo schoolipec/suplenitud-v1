@@ -21,6 +21,7 @@
 
 1. Mantener las credenciales de la base aislada exclusivamente en el archivo de entorno del VPS; no versionarlas ni reutilizarlas.
 2. Para cambios futuros, construir y validar localmente antes de actualizar solo la demo. La producción requiere una fase y autorización independientes.
+3. La evolución aprobada de administración, contenido, peticiones, Telegram/n8n y donaciones está especificada en `docs/superpowers/specs/2026-10-10-admin-prayer-donations-design.md` y su plan de fases. No activar el formulario ni integraciones externas antes de completar sus fases verificadas.
 
 ## Reglas de continuidad
 
