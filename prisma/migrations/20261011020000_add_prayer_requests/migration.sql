@@ -1,0 +1,3 @@
+CREATE TYPE "PrayerRequestStatus" AS ENUM ('NEW', 'ASSIGNED', 'CONTACTED', 'CLOSED');
+CREATE TABLE "prayer_requests" ("id" UUID NOT NULL DEFAULT gen_random_uuid(), "name" TEXT NOT NULL, "phone_or_whatsapp" TEXT NOT NULL, "email" TEXT, "preferred_contact" TEXT NOT NULL, "consented_at" TIMESTAMPTZ(6) NOT NULL, "status" "PrayerRequestStatus" NOT NULL DEFAULT 'NEW', "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updated_at" TIMESTAMPTZ(6) NOT NULL, CONSTRAINT "prayer_requests_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "prayer_requests_status_created_at_idx" ON "prayer_requests"("status", "created_at");

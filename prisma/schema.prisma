@@ -136,6 +136,28 @@ enum ContentStatus {
   PUBLISHED
 }
 
+enum PrayerRequestStatus {
+  NEW
+  ASSIGNED
+  CONTACTED
+  CLOSED
+}
+
+model PrayerRequest {
+  id                String              @id @default(uuid()) @db.Uuid
+  name              String
+  phoneOrWhatsApp   String              @map("phone_or_whatsapp")
+  email             String?
+  preferredContact  String              @map("preferred_contact")
+  consentedAt       DateTime            @map("consented_at") @db.Timestamptz(6)
+  status            PrayerRequestStatus @default(NEW)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt])
+  @@map("prayer_requests")
+}
+
 model ContentBlock {
   id           String               @id @default(uuid()) @db.Uuid
   key          String               @unique
