@@ -1,0 +1,11 @@
+import {NextResponse} from "next/server";
+import {requireSuperAdmin} from "@/lib/access";
+import {prisma} from "@/lib/db/client";
+export async function POST(request: Request, {params}: {params: Promise<{id: string}>}) {
+  if (request.headers.get("origin") !== new URL(request.url).origin) return NextResponse.json({error: "invalid_origin"}, {status: 403});
+  const actor = await requireSuperAdmin(request); if (!actor) return NextResponse.json({error: "forbidden"}, {status: 403});
+  const {id} = await params;
+  const block = await prisma.contentBlock.update({where: {id}, data: {status: "PUBLISHED"}});
+  await prisma.auditLog.create({data: {actorUserId: actor.id, action: "CONTENT_BLOCK_PUBLISHED", resource: "content_block", resourceId: id}});
+  return NextResponse.json(block);
+}
