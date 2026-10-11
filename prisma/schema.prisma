@@ -131,6 +131,50 @@ model BootstrapState {
   @@map("bootstrap_states")
 }
 
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model ContentBlock {
+  id           String               @id @default(uuid()) @db.Uuid
+  key          String               @unique
+  type         String
+  displayOrder Int                  @default(0) @map("display_order")
+  status       ContentStatus        @default(DRAFT)
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  translations ContentTranslation[]
+  revisions    ContentRevision[]
+
+  @@map("content_blocks")
+}
+
+model ContentTranslation {
+  id        String       @id @default(uuid()) @db.Uuid
+  blockId   String       @map("block_id") @db.Uuid
+  locale    String       @db.VarChar(5)
+  content   Json
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  block     ContentBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@unique([blockId, locale])
+  @@map("content_translations")
+}
+
+model ContentRevision {
+  id          String       @id @default(uuid()) @db.Uuid
+  blockId     String       @map("block_id") @db.Uuid
+  snapshot    Json
+  createdById String?      @map("created_by_id")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  block       ContentBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@index([blockId, createdAt])
+  @@map("content_revisions")
+}
+
 model Session {
   id        String   @id
   expiresAt DateTime
