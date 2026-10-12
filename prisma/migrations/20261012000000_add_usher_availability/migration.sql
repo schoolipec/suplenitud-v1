@@ -1,0 +1,2 @@
+CREATE TABLE "usher_availability" ("id" UUID NOT NULL DEFAULT gen_random_uuid(), "usher_name" TEXT NOT NULL, "timezone" TEXT NOT NULL, "weekday" INTEGER NOT NULL, "start_time" TEXT NOT NULL, "end_time" TEXT NOT NULL, "active" BOOLEAN NOT NULL DEFAULT true, CONSTRAINT "usher_availability_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "usher_availability_usher_name_weekday_idx" ON "usher_availability"("usher_name", "weekday");

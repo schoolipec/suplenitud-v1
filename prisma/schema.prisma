@@ -171,6 +171,19 @@ model PrayerAssignment {
   @@map("prayer_assignments")
 }
 
+model UsherAvailability {
+  id        String   @id @default(uuid()) @db.Uuid
+  usherName String   @map("usher_name")
+  timezone  String
+  weekday   Int
+  startTime String   @map("start_time")
+  endTime   String   @map("end_time")
+  active    Boolean  @default(true)
+
+  @@index([usherName, weekday])
+  @@map("usher_availability")
+}
+
 model ContentBlock {
   id           String               @id @default(uuid()) @db.Uuid
   key          String               @unique
