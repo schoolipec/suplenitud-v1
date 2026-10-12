@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {source: "/index.html", destination: "/", permanent: true},
-      {source: "/pastors/index.html", destination: "/pastors/", permanent: true}
+      {source: "/pastors/index.html", destination: "/pastors/", permanent: true},
+      {source: "/:locale(es|pt|ko|de)/admin/:path*", destination: "/admin/:path*", permanent: false}
     ];
   }
 };

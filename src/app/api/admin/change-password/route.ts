@@ -3,7 +3,8 @@ import {auth} from "@/lib/auth";
 import {prisma} from "@/lib/db/client";
 
 export async function POST(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin) return NextResponse.json({error: "invalid_origin"}, {status: 403});
+  const publicOrigin = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
+  if (!publicOrigin || request.headers.get("origin") !== new URL(publicOrigin).origin) return NextResponse.json({error: "invalid_origin"}, {status: 403});
   const session = await auth.api.getSession({headers: request.headers});
   if (!session?.user) return NextResponse.json({error: "unauthenticated"}, {status: 401});
   const body: unknown = await request.json().catch(() => null);
