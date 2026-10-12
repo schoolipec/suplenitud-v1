@@ -184,6 +184,26 @@ model UsherAvailability {
   @@map("usher_availability")
 }
 
+enum DonationStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+model Donation {
+  id String @id @default(uuid()) @db.Uuid
+  provider String
+  externalReference String @unique @map("external_reference")
+  amount Decimal @db.Decimal(12,2)
+  currency String @db.VarChar(3)
+  campaign String
+  status DonationStatus @default(PENDING)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  @@index([provider,status])
+  @@map("donations")
+}
+
 model ContentBlock {
   id           String               @id @default(uuid()) @db.Uuid
   key          String               @unique
