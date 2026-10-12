@@ -24,7 +24,7 @@
 
 ## Bloque actual: 2FA TOTP
 
-El código pendiente de publicar agrega TOTP nativo de Better Auth:
+TOTP nativo de Better Auth está publicado en demo:
 
 1. Migración `20261012020000_add_two_factor` y modelo Prisma `TwoFactor`.
 2. Ruta `/admin/security`: inscripción voluntaria usando contraseña actual, URI de configuración y códigos de recuperación de un solo uso.
@@ -32,7 +32,7 @@ El código pendiente de publicar agrega TOTP nativo de Better Auth:
 4. La inscripción no debe activarse automáticamente para nadie. Una vez confirmada por el propietario de la cuenta, Better Auth la exige al inicio de sesión.
 5. Nunca registrar, copiar ni mostrar en conversación el URI TOTP o los códigos de recuperación.
 
-### Validación y publicación del bloque 2FA
+### Procedimiento de validación y publicación para cambios futuros
 
 1. Ejecutar `npm run prisma:generate`, `npm run lint`, `npm run typecheck` y `npm run build` desde esta carpeta.
 2. Revisar `git diff`, actualizar este documento y `MIGRATION-CHECKPOINT.md`, crear commit y `git push origin nextjs-migration`.
