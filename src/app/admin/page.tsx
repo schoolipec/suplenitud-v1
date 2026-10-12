@@ -4,8 +4,8 @@ import {auth} from "@/lib/auth";
 import {canAccessAdmin} from "@/lib/access";
 import {prisma} from "@/lib/db/client";
 import {canManageUsers} from "@/lib/access";
-import {CreateAdminForm} from "@/components/admin/CreateAdminForm";
 import Link from "next/link";
+import {AdminFrame} from "@/components/admin/AdminFrame";
 
 export const metadata = {title: "Administration | Iglesia Plenitud en Cristo"};
 export const instant = false;
@@ -22,19 +22,12 @@ export default async function AdminPage() {
   });
   const roles = assignments.map(({role}) => role);
   if (!canAccessAdmin(roles)) redirect("/admin/sign-in?error=unauthorized");
-  const auditEvents = canManageUsers(roles) ? await prisma.auditLog.findMany({orderBy: {createdAt: "desc"}, take: 10, select: {action: true, resource: true, createdAt: true}}) : [];
+  const [auditEvents, userCount, requestCount, contentCount] = await Promise.all([
+    canManageUsers(roles) ? prisma.auditLog.findMany({orderBy: {createdAt: "desc"}, take: 6, select: {action: true, resource: true, createdAt: true}}) : [],
+    canManageUsers(roles) ? prisma.user.count() : 0,
+    prisma.prayerRequest.count(),
+    prisma.contentBlock.count(),
+  ]);
 
-  return (
-    <main className="admin-shell" lang="en">
-      <section className="admin-card" aria-labelledby="admin-title">
-        <p className="admin-eyebrow">Administration</p>
-        <h1 id="admin-title">Welcome, {session.user.name}</h1>
-        <p>Your access level: {roles.join(", ")}</p>
-        <p><Link className="password-recovery-link" href="/admin/security">Security and two-factor authentication</Link></p>
-        <p>Content, prayer requests, and finance modules will appear here as their approved phases are completed.</p>
-        {canManageUsers(roles) ? <CreateAdminForm /> : null}
-        {canManageUsers(roles) ? <section className="admin-audit"><h2>Recent activity</h2><ul>{auditEvents.map((event) => <li key={`${event.action}-${event.createdAt.toISOString()}`}>{event.action} · {event.resource} · {event.createdAt.toLocaleString("en-US")}</li>)}</ul></section> : null}
-      </section>
-    </main>
-  );
+  return <AdminFrame roles={roles} title={`Welcome, ${session.user.name}`}><p className="admin-intro">Your access level: {roles.join(", ")}. Use the modules below to manage the platform.</p><div className="admin-summary-grid"><Link href="/admin/users" className="admin-summary-card"><span>Users</span><strong>{userCount}</strong><small>Accounts and access</small></Link><Link href="/admin/prayer-requests" className="admin-summary-card"><span>Prayer requests</span><strong>{requestCount}</strong><small>Pastoral follow-up</small></Link><Link href="/admin/template" className="admin-summary-card"><span>Website content</span><strong>{contentCount}</strong><small>Blocks and translations</small></Link><Link href="/admin/configs" className="admin-summary-card"><span>Settings</span><strong>›</strong><small>Profile and security</small></Link></div><section className="admin-section"><h2>Recent activity</h2>{auditEvents.length ? <ul className="admin-audit-list">{auditEvents.map((event) => <li key={`${event.action}-${event.createdAt.toISOString()}`}><strong>{event.action.replaceAll("_", " ")}</strong><span>{event.resource} · {event.createdAt.toLocaleString("en-US")}</span></li>)}</ul> : <p>No recent activity.</p>}</section></AdminFrame>;
 }

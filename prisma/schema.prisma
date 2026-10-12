@@ -82,6 +82,9 @@ model User {
   updatedAt          DateTime  @updatedAt
   mustChangePassword Boolean?  @default(true)
   twoFactorEnabled   Boolean   @default(false)
+  phone              String?
+  whatsapp           String?
+  telegramChatId     String?
   sessions           Session[]
   accounts           Account[]
   roles              UserRole[]
