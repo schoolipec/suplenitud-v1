@@ -1,11 +1,7 @@
 import {NextResponse} from "next/server";
 import {auth} from "@/lib/auth";
 import {prisma} from "@/lib/db/client";
-
-function hasValidPublicOrigin(request: Request) {
-  const publicOrigin = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
-  return Boolean(publicOrigin && request.headers.get("origin") === new URL(publicOrigin).origin);
-}
+import {hasValidPublicOrigin} from "@/lib/request-origin";
 
 export async function PATCH(request: Request) {
   if (!hasValidPublicOrigin(request)) return NextResponse.json({error: "invalid_origin"}, {status: 403});

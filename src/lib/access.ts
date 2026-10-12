@@ -12,6 +12,10 @@ export function canManageUsers(roles: readonly ApplicationRole[]) {
   return roles.includes(ApplicationRole.SUPER_ADMIN);
 }
 
+export function canManageDonations(roles: readonly ApplicationRole[]) {
+  return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.TREASURER);
+}
+
 export async function requireSuperAdmin(request: Request) {
   const session = await auth.api.getSession({headers: request.headers});
   if (!session?.user) return null;

@@ -1,7 +1,7 @@
 # Continuidad del panel administrativo
 
 **Actualizado:** 2026-10-12  
-**Rama:** `nextjs-migration`  
+**Rama:** `opencode/admin-panel-responsive` (basada en `nextjs-migration`)  
 **Entorno autorizado:** `demo.suplenitud.com` exclusivamente.
 
 ## Límites innegociables
@@ -22,7 +22,30 @@
 - El selector público de idioma está oculto en `/admin/*`. Las rutas localizadas `/es|pt|ko|de/admin/:path*` redirigen de forma temporal a `/admin/:path*`.
 - El cambio de contraseña valida el origen público configurado en `BETTER_AUTH_URL`, evitando el error `invalid_origin` detrás del proxy de demo.
 
-## Bloque actual: 2FA TOTP
+## Bloque actual: base responsive del panel (fase completada en rama; sin desplegar)
+
+La base responsive del panel administrativo quedó implementada en la rama `opencode/admin-panel-responsive` (commits `2a55078` y el de cierre de fase). Pendiente de despliegue a demo tras aprobación:
+
+1. **Dashboard `/admin`:** real con `AdminFrame`, sin formulario de crear usuario incrustado. Tarjeta "Users" solo para SUPER_ADMIN; para SUPER_ADMIN/TREASURER la primera tarjeta enlaza a Donations. Actividad reciente solo visible para SUPER_ADMIN.
+2. **`/admin/users`:** lista responsive con scroll horizontal, creación de cuentas por SUPER_ADMIN vía `POST /api/admin/users` (roles `ADMIN`, `TREASURER`, `USHER`; la opción USHER indica "no panel access"; no se puede crear otro SUPER_ADMIN desde la UI). La API valida Origin público (`BETTER_AUTH_URL ?? NEXT_PUBLIC_SITE_URL`) y asigna roles solo desde el enum de roles permitidos.
+3. **Shell unificado:** todas las páginas del panel (`content`, `prayer-requests`, `usher-availability`, `donations`, `visits`, `configs`, `users`, overview) usan `AdminFrame` con navegación lateral en escritorio y barra sticky horizontal accesible en móvil (breakpoint 760 px). Las páginas de autenticación/2FA (`sign-in`, `recover-password`, `change-password`, `two-factor`, `security`) conservan `admin-shell` sin navegación (decisión deliberada: no mostrar panel a usuarios no autenticados).
+4. **Navegación por rol:** Users solo SUPER_ADMIN; Donations solo SUPER_ADMIN/TREASURER (`canManageDonations` en `src/lib/access.ts`). USHER no tiene acceso al panel (`canAccessAdmin`).
+5. **Origen público en APIs:** helper compartido `hasValidPublicOrigin` en `src/lib/request-origin.ts`, aplicado a `users`, `content` (+ publish/unpublish/translations), `prayer-requests/[id]`, `usher-availability` y `profile`. `change-password` ya lo validaba.
+6. **Corrección de sticky móvil:** `overflow-x: hidden` en `html, body` convertía al body en scroll container y rompía `position: sticky` de la nav del admin en móvil (desplazamiento de +70 px y no se pegaba al hacer scroll). Cambiado a `overflow-x: clip` en `globals.css`; verificado con Playwright a 390 px (nav pegada bajo el header fijo, sin solapar el `h1`).
+7. **2FA intacto:** no se modificó el sistema TOTP existente.
+8. **CSS propio:** sin Tailwind; se definieron las clases faltantes `.admin-data-grid`, `.admin-settings-grid`, `.admin-action-link` y `.admin-field-note` en `globals.css`.
+
+### Verificación de esta fase
+
+- `npm run prisma:generate`, `npm run lint`, `npm run typecheck`, `npm run build` y `git diff --check` pasaron.
+- Revisión visual a 390 px con Playwright: capturas en `C:\ProgramandoconClaude\Reportes\IPEC\admin-responsive-390px\` (panel de verificación con CSS compilado real, sign-in real y corrección de sticky).
+
+### Pendiente en esta fase
+
+- Desplegar a demo (fuera del alcance de esta rama; requiere procedimiento del VPS descrito abajo).
+- La validación visual autenticada completa requiere una BD local utilizable (las credenciales `.env` locales son placeholders); la verificación se hizo con markup representativo + CSS compilado real y con la página real de sign-in.
+
+## 2FA TOTP (publicado en demo; sin cambios en esta fase)
 
 TOTP nativo de Better Auth está publicado en demo:
 

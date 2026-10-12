@@ -2,15 +2,11 @@ import {NextResponse} from "next/server";
 import {auth} from "@/lib/auth";
 import {prisma} from "@/lib/db/client";
 import {requireSuperAdmin} from "@/lib/access";
+import {hasValidPublicOrigin} from "@/lib/request-origin";
 import {ApplicationRole} from "@/generated/prisma/client";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const assignableRoles = [ApplicationRole.ADMIN, ApplicationRole.TREASURER, ApplicationRole.USHER] as const;
-
-function hasValidPublicOrigin(request: Request) {
-  const publicOrigin = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
-  return Boolean(publicOrigin && request.headers.get("origin") === new URL(publicOrigin).origin);
-}
 
 export async function GET(request: Request) {
   const actor = await requireSuperAdmin(request);

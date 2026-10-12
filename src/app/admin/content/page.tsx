@@ -3,13 +3,18 @@ import {redirect} from "next/navigation";
 import {auth} from "@/lib/auth";
 import {canAccessAdmin} from "@/lib/access";
 import {prisma} from "@/lib/db/client";
+import {AdminFrame} from "@/components/admin/AdminFrame";
 
 export const instant = false;
+export const metadata = {title: "Website content | Iglesia Plenitud en Cristo"};
+
 export default async function AdminContentPage() {
   const session = await auth.api.getSession({headers: await headers()});
   if (!session?.user) redirect("/admin/sign-in");
-  const roles = (await prisma.userRole.findMany({where: {userId: session.user.id}, select: {role: true}})).map(({role}) => role);
+  const user = await prisma.user.findUnique({where: {id: session.user.id}, select: {mustChangePassword: true, roles: {select: {role: true}}}});
+  if (user?.mustChangePassword) redirect("/admin/change-password");
+  const roles = user?.roles.map(({role}) => role) ?? [];
   if (!canAccessAdmin(roles)) redirect("/admin/sign-in?error=unauthorized");
   const blocks = await prisma.contentBlock.findMany({orderBy: [{displayOrder: "asc"}, {key: "asc"}], select: {id: true, key: true, type: true, status: true, translations: {select: {locale: true}}}});
-  return <main className="admin-shell" lang="en"><section className="admin-card"><p className="admin-eyebrow">Administration</p><h1>Content</h1><p>Published content is controlled by locale and revision. Editing is enabled after the first blocks are imported.</p><ul>{blocks.map((block) => <li key={block.id}><strong>{block.key}</strong> · {block.type} · {block.status} · {block.translations.map(({locale}) => locale).join(", ") || "No translations"}</li>)}</ul></section></main>;
+  return <AdminFrame roles={roles} title="Website content"><p className="admin-intro">Published content is controlled by locale and revision. Editing is enabled after the first blocks are imported.</p><div className="admin-data-grid"><section className="admin-section"><h2>Content blocks</h2><ul className="admin-audit-list">{blocks.map((block) => <li key={block.id}><strong>{block.key}</strong><span>{block.type} · {block.status} · {block.translations.map(({locale}) => locale).join(", ") || "No translations"}</span></li>)}</ul></section></div></AdminFrame>;
 }
