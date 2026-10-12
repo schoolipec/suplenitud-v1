@@ -16,6 +16,22 @@ export function canManageDonations(roles: readonly ApplicationRole[]) {
   return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.TREASURER);
 }
 
+export function canViewContent(roles: readonly ApplicationRole[]) {
+  return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.ADMIN);
+}
+
+export function canViewPrayerRequests(roles: readonly ApplicationRole[]) {
+  return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.ADMIN);
+}
+
+export function canViewUshers(roles: readonly ApplicationRole[]) {
+  return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.ADMIN);
+}
+
+export function canViewVisits(roles: readonly ApplicationRole[]) {
+  return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.ADMIN);
+}
+
 export async function requireSuperAdmin(request: Request) {
   const session = await auth.api.getSession({headers: request.headers});
   if (!session?.user) return null;

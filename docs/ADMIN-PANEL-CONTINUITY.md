@@ -1,7 +1,9 @@
 # Continuidad del panel administrativo
 
-**Actualizado:** 2026-10-12  
-**Rama:** `opencode/admin-panel-responsive` (basada en `nextjs-migration`)  
+**Actualizado:** 2026-10-12
+
+**Rama:** `opencode/admin-panel-responsive` (basada en `nextjs-migration`)
+
 **Entorno autorizado:** `demo.suplenitud.com` exclusivamente.
 
 ## Límites innegociables
@@ -14,7 +16,7 @@
 ## Implementado y publicado en demo
 
 - Better Auth con PostgreSQL aislado, sesiones, roles `SUPER_ADMIN`, `ADMIN`, `TREASURER` y `USHER`, auditoría y cambio obligatorio de la contraseña inicial.
-- `SUPER_ADMIN` y `ADMIN` pueden acceder al panel; `TREASURER` y `USHER` no tienen permisos administrativos funcionales todavía. Ujieres no tendrán acceso al panel.
+- `SUPER_ADMIN` y `ADMIN` pueden acceder al panel; `TREASURER` tiene acceso restringido (dashboard, donaciones y configuración propia); `USHER` no tiene acceso al panel. Ujieres no tendrán acceso al panel.
 - Rutas administrativas iniciales: inicio, usuarios, contenido, peticiones, disponibilidad de ujieres y donaciones. Todas deben mantener verificación del lado servidor.
 - Contenido: tablas de bloques, traducciones y revisiones; el editor funcional y su publicación siguen pendientes.
 - Peticiones: tablas, formulario público y rutas administrativas iniciales existen; Telegram, WhatsApp y n8n siguen desactivados.
@@ -26,10 +28,10 @@
 
 La base responsive del panel administrativo quedó implementada en la rama `opencode/admin-panel-responsive` (commits `2a55078` y el de cierre de fase). Pendiente de despliegue a demo tras aprobación:
 
-1. **Dashboard `/admin`:** real con `AdminFrame`, sin formulario de crear usuario incrustado. Tarjeta "Users" solo para SUPER_ADMIN; para SUPER_ADMIN/TREASURER la primera tarjeta enlaza a Donations. Actividad reciente solo visible para SUPER_ADMIN.
+1. **Dashboard `/admin`:** real con `AdminFrame`, sin formulario de crear usuario incrustado. Tarjetas por rol: Users solo SUPER_ADMIN; para TREASURER solo Donations y Settings (dashboard restringido, sin contadores de peticiones/contenido). Actividad reciente solo visible para SUPER_ADMIN.
 2. **`/admin/users`:** lista responsive con scroll horizontal, creación de cuentas por SUPER_ADMIN vía `POST /api/admin/users` (roles `ADMIN`, `TREASURER`, `USHER`; la opción USHER indica "no panel access"; no se puede crear otro SUPER_ADMIN desde la UI). La API valida Origin público (`BETTER_AUTH_URL ?? NEXT_PUBLIC_SITE_URL`) y asigna roles solo desde el enum de roles permitidos.
 3. **Shell unificado:** todas las páginas del panel (`content`, `prayer-requests`, `usher-availability`, `donations`, `visits`, `configs`, `users`, overview) usan `AdminFrame` con navegación lateral en escritorio y barra sticky horizontal accesible en móvil (breakpoint 760 px). Las páginas de autenticación/2FA (`sign-in`, `recover-password`, `change-password`, `two-factor`, `security`) conservan `admin-shell` sin navegación (decisión deliberada: no mostrar panel a usuarios no autenticados).
-4. **Navegación por rol:** Users solo SUPER_ADMIN; Donations solo SUPER_ADMIN/TREASURER (`canManageDonations` en `src/lib/access.ts`). USHER no tiene acceso al panel (`canAccessAdmin`).
+4. **Permisos por rol (menú y servidor):** matriz en `src/lib/access.ts` — SUPER_ADMIN: todo; ADMIN: content, prayer-requests, ushers, visits, configs; TREASURER: dashboard restringido, donations, configs; USHER: sin panel (`canAccessAdmin` excluye USHER). Users solo SUPER_ADMIN (`canManageUsers`); Donations solo SUPER_ADMIN/TREASURER (`canManageDonations`). Cada página valida su rol en el servidor y `AdminNavigation` oculta los enlaces no autorizados. Las APIs mutantes de content/prayer/ushers siguen exigiendo SUPER_ADMIN (`requireSuperAdmin`), sin expansión de alcance.
 5. **Origen público en APIs:** helper compartido `hasValidPublicOrigin` en `src/lib/request-origin.ts`, aplicado a `users`, `content` (+ publish/unpublish/translations), `prayer-requests/[id]`, `usher-availability` y `profile`. `change-password` ya lo validaba.
 6. **Corrección de sticky móvil:** `overflow-x: hidden` en `html, body` convertía al body en scroll container y rompía `position: sticky` de la nav del admin en móvil (desplazamiento de +70 px y no se pegaba al hacer scroll). Cambiado a `overflow-x: clip` en `globals.css`; verificado con Playwright a 390 px (nav pegada bajo el header fijo, sin solapar el `h1`).
 7. **2FA intacto:** no se modificó el sistema TOTP existente.
