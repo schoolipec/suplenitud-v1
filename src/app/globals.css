@@ -33,8 +33,8 @@ body {
   padding-top: 78px;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--ink);
+  background: var(--paper);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -82,10 +82,17 @@ a {
 .admin-auth-form button:disabled { cursor: wait; opacity: .7; }
 .password-field { position: relative; }
 .password-field input { width: 100%; padding-right: 4.75rem; }
-.password-field .password-visibility { position: absolute; right: .4rem; top: .4rem; min-height: 1.95rem; padding: .2rem .55rem; background: transparent; color: var(--ink, #16222c); border: 1px solid var(--line, #d8d6cf); }
+.password-field .password-visibility { position: absolute; right: .4rem; top: .4rem; display: grid; place-items: center; width: 2rem; min-height: 1.95rem; padding: .2rem; background: transparent; color: var(--ink, #16222c); border: 0; }
+.password-visibility svg { width: 1.2rem; height: 1.2rem; }
 .password-recovery-link { justify-self: start; color: var(--green, #3b6c4c); font-weight: 700; font-size: .9rem; }
 .scroll-to-top { position: fixed; right: clamp(1rem, 3vw, 2rem); bottom: clamp(1rem, 3vw, 2rem); z-index: 20; display: grid; place-items: center; width: 3rem; height: 3rem; border: 1px solid var(--line); border-radius: 50%; background: var(--navy); color: #fff; font-size: 1.5rem; line-height: 1; box-shadow: 0 .75rem 1.5rem rgb(0 0 0 / 18%); cursor: pointer; }
 .scroll-to-top:hover { background: var(--green); }
+.prayer-form .prayer-consent { display: flex; align-items: flex-start; gap: .7rem; margin: 1.25rem 0; font-weight: 600; cursor: pointer; }
+.prayer-form .prayer-consent input[type="checkbox"] { appearance: none; flex: 0 0 1.2rem; width: 1.2rem; height: 1.2rem; margin: .2rem 0 0; padding: 0; border: 1px solid #79a9c4; border-radius: .3rem; background: #092842; display: grid; place-content: center; }
+.prayer-form .prayer-consent input[type="checkbox"]::before { content: ""; width: .65rem; height: .35rem; border: solid var(--navy); border-width: 0 0 .18rem .18rem; transform: rotate(-45deg) scale(0); transform-origin: center; }
+.prayer-form .prayer-consent input[type="checkbox"]:checked { background: var(--lime); border-color: var(--lime); }
+.prayer-form .prayer-consent input[type="checkbox"]:checked::before { transform: rotate(-45deg) scale(1); }
+.prayer-form .prayer-consent input[type="checkbox"]:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 
 @media (max-width: 760px) {
   body { padding-top: 70px; }
