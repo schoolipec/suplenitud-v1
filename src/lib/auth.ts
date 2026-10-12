@@ -1,6 +1,7 @@
 import {betterAuth} from "better-auth";
 import {prismaAdapter} from "better-auth/adapters/prisma";
 import {prisma} from "@/lib/db/client";
+import {twoFactor} from "better-auth/plugins";
 
 /**
  * Authentication is backed by the application database. Values for
@@ -12,6 +13,7 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
   },
+  plugins: [twoFactor({issuer: "Iglesia Plenitud en Cristo"})],
   user: {
     additionalFields: {
       mustChangePassword: {

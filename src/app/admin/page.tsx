@@ -5,6 +5,7 @@ import {canAccessAdmin} from "@/lib/access";
 import {prisma} from "@/lib/db/client";
 import {canManageUsers} from "@/lib/access";
 import {CreateAdminForm} from "@/components/admin/CreateAdminForm";
+import Link from "next/link";
 
 export const metadata = {title: "Administration | Iglesia Plenitud en Cristo"};
 export const instant = false;
@@ -29,6 +30,7 @@ export default async function AdminPage() {
         <p className="admin-eyebrow">Administration</p>
         <h1 id="admin-title">Welcome, {session.user.name}</h1>
         <p>Your access level: {roles.join(", ")}</p>
+        <p><Link className="password-recovery-link" href="/admin/security">Security and two-factor authentication</Link></p>
         <p>Content, prayer requests, and finance modules will appear here as their approved phases are completed.</p>
         {canManageUsers(roles) ? <CreateAdminForm /> : null}
         {canManageUsers(roles) ? <section className="admin-audit"><h2>Recent activity</h2><ul>{auditEvents.map((event) => <li key={`${event.action}-${event.createdAt.toISOString()}`}>{event.action} · {event.resource} · {event.createdAt.toLocaleString("en-US")}</li>)}</ul></section> : null}

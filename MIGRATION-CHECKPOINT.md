@@ -1,6 +1,6 @@
 # Checkpoint de migración Next.js
 
-**Actualizado:** 2026-10-10
+**Actualizado:** 2026-10-12
 **Rama:** `nextjs-migration`
 **Remoto:** `schoolipec/suplenitud-v1`
 
@@ -22,8 +22,9 @@
 1. Mantener las credenciales de la base aislada exclusivamente en el archivo de entorno del VPS; no versionarlas ni reutilizarlas.
 2. Para cambios futuros, construir y validar localmente antes de actualizar solo la demo. La producción requiere una fase y autorización independientes.
 3. La evolución aprobada de administración, contenido, peticiones, Telegram/n8n y donaciones está especificada en `docs/superpowers/specs/2026-10-10-admin-prayer-donations-design.md` y su plan de fases. No activar el formulario ni integraciones externas antes de completar sus fases verificadas.
-4. La Fase A tiene código y migración versionados localmente: Better Auth, tablas de identidad/roles/auditoría, `/admin`, y bootstrap único de SuperAdmin. No se aplicó la migración ni se publicó esta fase en demo; seguir `docs/ADMIN-BOOTSTRAP.md` únicamente después de la validación y autorización operativa correspondientes.
-5. Los modelos y rutas locales de contenido, peticiones, disponibilidad y donaciones fueron verificados mediante lint, typecheck y build el 2026-10-12. Permanecen sin migrar ni publicar en demo; las integraciones externas requieren secretos y cuentas institucionales.
+4. La Fase A está publicada en demo: Better Auth, identidad/roles/auditoría, `/admin`, bootstrap único y cambio obligatorio de contraseña. El selector de idioma no aparece en administración; las rutas administrativas con prefijo de idioma redirigen a su ruta canónica sin prefijo.
+5. El bloque TOTP de dos factores está listo localmente con la migración `20261012020000_add_two_factor`, rutas `/admin/security` y `/admin/two-factor`, pendiente de commit, migración y publicación controlada en demo. La inscripción es voluntaria y no se deben documentar sus secretos ni códigos de recuperación.
+6. Los modelos y rutas de contenido, peticiones, disponibilidad y donaciones permanecen en alcance por fases; las integraciones externas requieren secretos y cuentas institucionales. Consultar `docs/ADMIN-PANEL-CONTINUITY.md` antes de continuar.
 
 ## Reglas de continuidad
 
