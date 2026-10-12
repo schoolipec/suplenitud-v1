@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   output: "standalone",
   trailingSlash: true,
+  skipTrailingSlashRedirect: true,
   images: {remotePatterns: [{protocol: "https", hostname: "flagcdn.com"}]},
   async redirects() {
     return [
