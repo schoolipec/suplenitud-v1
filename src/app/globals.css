@@ -91,6 +91,9 @@ a {
 .admin-navigation-links { display: grid; gap: .3rem; }
 .admin-navigation-links a { padding: .75rem; border-radius: .5rem; color: #eaf3f7; font-weight: 700; }
 .admin-navigation-links a:hover, .admin-navigation-links a.is-active { background: rgb(255 255 255 / 15%); color: #fff; }
+.admin-sign-out { width: calc(100% - 1.5rem); margin: 1.75rem .75rem 0; padding: .7rem; border: 1px solid rgb(255 255 255 / 35%); border-radius: .5rem; background: transparent; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.admin-sign-out:hover { background: rgb(255 255 255 / 15%); }
+.admin-sign-out:disabled { cursor: wait; opacity: .7; }
 .admin-workspace { width: min(100%, 76rem); padding: clamp(1.5rem, 4vw, 3rem); }
 .admin-workspace > h1 { margin: .25rem 0 .5rem; font-size: clamp(2rem, 4vw, 3.25rem); }
 .admin-intro { max-width: 48rem; margin: 0 0 2rem; color: var(--muted, #52616e); }
@@ -135,6 +138,7 @@ a {
   .admin-navigation-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .admin-navigation-links { display: flex; width: max-content; gap: .25rem; padding: 0 .75rem; }
   .admin-navigation-links a { padding: .6rem .75rem; font-size: .9rem; white-space: nowrap; }
+  .admin-sign-out { flex: 0 0 auto; width: auto; margin: 0 .75rem 0 0; padding: .55rem .75rem; white-space: nowrap; }
   .admin-workspace { padding: 1.5rem 1rem 2rem; }
   .admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
   .admin-summary-card { min-height: 7.5rem; padding: 1rem; }
