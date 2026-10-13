@@ -87,7 +87,8 @@ Implementada en `feature/admin-operations-phase-1` según `docs/superpowers/spec
 
 1. **Schema:** columna `User.active` (default `true`) + migración `20261013100000_add_ministry_contacts_and_user_activation`.
 2. **API `GET /api/admin/users`:** devuelve además `active` y `lastActivityAt` (derivado de la sesión más reciente; sin inventar datos).
-3. **API `PATCH /api/admin/users/[id]`:** editar nombre; cambiar rol solo dentro de `ADMIN`/`TREASURER`/`USHER` (nunca asignar SUPER_ADMIN desde UI); forzar cambio de contraseña (`mustChangePassword` + revocación de sesiones); desactivar/reactivar (`active`). No se puede desactivar a uno mismo. Toda acción exige `requireSuperAdmin`, `hasValidPublicOrigin` y `auditLog` (`USER_UPDATED`).
+3. **API `PATCH /api/admin/users/[id]`:** editar nombre; cambiar rol solo dentro de `ADMIN`/`TREASURER`/`USHER` (nunca asignar SUPER_ADMIN desde UI). Si el usuario destino tiene rol `SUPER_ADMIN`, el servidor rechaza cualquier cambio de rol (`cannot_change_super_admin_role`, 403) sin depender de la UI; no se eliminan ni recrean roles de un SUPER_ADMIN. Forzar cambio de contraseña (`mustChangePassword` + revocación de sesiones); desactivar/reactivar (`active`). No se puede desactivar a uno mismo. Toda acción exige `requireSuperAdmin`, `hasValidPublicOrigin` y `auditLog` (`USER_UPDATED`). Guards centralizados en `src/lib/admin-user-actions.ts`.
+4. **API `POST /api/admin/users`:** restaurada tras la refactorización de la rama; conserva Origin, `requireSuperAdmin`, validación de nombre/correo/contraseña temporal (≥16)/rol, rechazo de SUPER_ADMIN en el rol asignable, correo duplicado (409), creación vía Better Auth, asignación de rol y auditoría (`USER_CREATED`), y además fija `active: true` y `mustChangePassword: true` en la transacción. Respuesta `201`.
 4. **UI `UserManagement`:** búsqueda por nombre/correo, filtros de rol y estado, badges de estado/2FA, actividad reciente, acciones visibles por fila (editar, forzar clave, desactivar/reactivar con confirmación en línea) sin depender de hover; auto-acciones ocultas para la propia cuenta (etiqueta "You"); en móvil la tabla se apila en tarjetas con detalle expandible. Crear usuario conserva el flujo existente (roles ADMIN/TREASURER/USHER; contraseña temporal ≥ 16).
 5. **Bloqueo de inactivos:** hook `databaseHooks.session.create.before` en `src/lib/auth.ts` impide crear sesiones de usuarios con `active=false`; al desactivar o forzar clave se revocan sesiones existentes. `requireSuperAdmin`/`requireMinistryManager` y las páginas `/admin/users`, `/admin/ministry-contacts` y `/admin/configs` también verifican `active`.
 
@@ -113,6 +114,7 @@ Implementada en `feature/admin-operations-phase-1` según `docs/superpowers/spec
 ### Verificación de esta fase
 
 - `npm run prisma:generate`, `npm run lint`, `npm run typecheck`, `npm run build` y `git diff --check` pasaron.
+- Verificación reproducible de la API de usuarios: `npm run verify:admin-users` (`scripts/verify-admin-users-api.mts`) cubre POST disponible y protegido, rechazo de cambio de rol de SUPER_ADMIN y rechazo de auto-desactivación (helpers unitarios + revisión de cableado en las rutas).
 - Capturas Playwright escritorio 1440 y móvil 390 × claro/oscuro en `C:\ProgramandoconClaude\Reportes\IPEC\admin-operations-phase-1\` (4 archivos), con componentes reales + datos representativos (BD local placeholder). Se corrigieron `min-width` de tabla en móvil y apilado de acciones en escritorio.
 
 ### Pendiente en esta fase

@@ -3,6 +3,7 @@ import {prisma} from "@/lib/db/client";
 import {requireSuperAdmin} from "@/lib/access";
 import {hasValidPublicOrigin} from "@/lib/request-origin";
 import {ApplicationRole} from "@/generated/prisma/client";
+import {shouldRejectSelfDeactivation, shouldRejectSuperAdminRoleChange} from "@/lib/admin-user-actions";
 
 const assignableRoles = [ApplicationRole.ADMIN, ApplicationRole.TREASURER, ApplicationRole.USHER] as const;
 
@@ -16,8 +17,12 @@ export async function PATCH(request: Request, {params}: Params) {
   if (!actor) return NextResponse.json({error: "forbidden"}, {status: 403});
 
   const {id} = await params;
-  const target = await prisma.user.findUnique({where: {id}, select: {id: true, active: true}});
+  const target = await prisma.user.findUnique({
+    where: {id},
+    select: {id: true, active: true, roles: {select: {role: true}}},
+  });
   if (!target) return NextResponse.json({error: "user_not_found"}, {status: 404});
+  const targetRoles = target.roles.map(({role}) => role);
 
   const body: unknown = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({error: "invalid_request"}, {status: 400});
@@ -36,6 +41,9 @@ export async function PATCH(request: Request, {params}: Params) {
   }
 
   if (role !== undefined) {
+    if (shouldRejectSuperAdminRoleChange(targetRoles, role)) {
+      return NextResponse.json({error: "cannot_change_super_admin_role"}, {status: 403});
+    }
     if (typeof role !== "string" || !assignableRoles.includes(role as (typeof assignableRoles)[number])) {
       return NextResponse.json({error: "invalid_role"}, {status: 400});
     }
@@ -45,7 +53,7 @@ export async function PATCH(request: Request, {params}: Params) {
 
   if (active !== undefined) {
     if (typeof active !== "boolean") return NextResponse.json({error: "invalid_active"}, {status: 400});
-    if (active === false && target.id === actor.id) {
+    if (shouldRejectSelfDeactivation(actor.id, target.id, active)) {
       return NextResponse.json({error: "cannot_deactivate_self"}, {status: 400});
     }
     data.active = active;
