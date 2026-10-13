@@ -119,7 +119,7 @@ const migration = readFileSync(join(root, "prisma/migrations/20261014000000_user
 assert.match(migration, /user_invitations/);
 assert.match(migration, /token_hash/);
 assert.ok(!migration.includes("password TEXT"));
-assert.ok(!migration.includes('"password"')); 
+assert.ok(!migration.includes('"password"'));
 
 console.log("verify-invitations: all checks passed");
 console.log("  - Single-use hashed tokens, 24h expiry, expired/used/revoked rejected");
