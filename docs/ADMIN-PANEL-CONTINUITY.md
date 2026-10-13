@@ -81,6 +81,8 @@ TOTP nativo de Better Auth está publicado en demo:
 
 ## Próximas fases, en orden
 
+El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La siguiente implementación autorizada es solamente Usuarios, Contactos ministeriales y Perfil.
+
 1. **Seguridad y acceso:** probar visualmente 2FA, recuperación de contraseña basada en correo institucional cuando SMTP esté autorizado, revocación de sesiones y política de rate limiting.
 2. **Contenido:** definir catálogo estable de bloques, editor de formato limitado, traducciones requeridas, borrador/publicación y restauración por revisión. No permitir HTML, CSS o JS arbitrario.
 3. **Peticiones de oración:** terminar la vista de gestión, asignación y bitácora; confirmar retención/borrado. Antes de activar el formulario real, implementar disponibilidad por zona horaria y mensaje honesto fuera de horario.
