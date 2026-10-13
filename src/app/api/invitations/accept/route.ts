@@ -14,7 +14,7 @@ async function findByToken(token: string) {
   const hash = hashInvitationToken(token);
   const candidates = await prisma.userInvitation.findMany({
     where: {usedAt: null},
-    select: {id: true, userId: true, email: true, tokenHash: true, expiresAt: true, revokedAt: true},
+    select: {id: true, userId: true, email: true, tokenHash: true, expiresAt: true, revokedAt: true, usedAt: true},
   });
   return candidates.find((row) => tokensEqual(row.tokenHash, hash)) ?? null;
 }
