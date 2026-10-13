@@ -18,6 +18,14 @@ import {
   canTransitionTo,
   validatePrayerRequest,
 } from "../src/lib/prayer-validation";
+import {
+  buildPublicSlot,
+  isSlotCompatibleWithChannel,
+  isUuid,
+  validateAvailabilitySlotForChannel,
+  wallTimeToUtc,
+} from "../src/lib/prayer-availability";
+import {isPrayerNotificationType, PRAYER_NOTIFICATION_TYPES} from "../src/lib/prayer-notifications";
 
 const root = join(import.meta.dirname, "..");
 
@@ -218,8 +226,22 @@ const missingPhone = validatePrayerRequest({
 assert.equal(missingPhone.valid, false);
 assert.ok(missingPhone.errors.includes("invalid_phone"));
 
-// Invalid: missing availability slot
-const missingSlot = validatePrayerRequest({
+// Optional: contact request without a slot is valid and flows to PENDING_ASSIGNMENT
+const pendingWithoutSlot = validatePrayerRequest({
+  requestType: "PRAYER_AND_CONTACT",
+  message: "Please pray for my family.",
+  name: "John Doe",
+  consentToStore: true,
+  consentToContact: true,
+  country: "US",
+  contactChannel: "WHATSAPP",
+  whatsapp: "+1234567890",
+  timeZone: "America/Los_Angeles",
+});
+assert.equal(pendingWithoutSlot.valid, true);
+assert.deepEqual(pendingWithoutSlot.errors, []);
+
+const pendingEmptySlot = validatePrayerRequest({
   requestType: "PRAYER_AND_CONTACT",
   message: "Please pray for my family.",
   name: "John Doe",
@@ -231,8 +253,73 @@ const missingSlot = validatePrayerRequest({
   timeZone: "America/Los_Angeles",
   availabilitySlotId: "",
 });
-assert.equal(missingSlot.valid, false);
-assert.ok(missingSlot.errors.includes("invalid_availability_slot"));
+assert.equal(pendingEmptySlot.valid, true);
+
+// Invalid: malformed slot id is still rejected at format level
+const malformedSlot = validatePrayerRequest({
+  requestType: "PRAYER_AND_CONTACT",
+  message: "Please pray for my family.",
+  name: "John Doe",
+  consentToStore: true,
+  consentToContact: true,
+  country: "US",
+  contactChannel: "WHATSAPP",
+  whatsapp: "+1234567890",
+  timeZone: "America/Los_Angeles",
+  availabilitySlotId: "550e8400-e29b-41d4-a716-446655440000-extra",
+});
+assert.equal(malformedSlot.valid, false);
+assert.ok(malformedSlot.errors.includes("invalid_availability_slot"));
+
+// UUID contract: only real UUIDs travel from availability to POST
+assert.equal(isUuid("550e8400-e29b-41d4-a716-446655440000"), true);
+assert.equal(isUuid("550e8400-e29b-41d4-a716-446655440000-2026-10-19"), false);
+assert.equal(isUuid(""), false);
+assert.equal(isUuid(null), false);
+
+// Slot/channel compatibility matrix (server-side gate)
+const baseSlot = {active: true, contactActive: true, contactAuthorized: true, contactPhone: "+1234567890", contactWhatsapp: "+1234567890"};
+assert.deepEqual(validateAvailabilitySlotForChannel(baseSlot, "PHONE"), {ok: true, reason: "ok"});
+assert.deepEqual(validateAvailabilitySlotForChannel(baseSlot, "WHATSAPP"), {ok: true, reason: "ok"});
+assert.deepEqual(validateAvailabilitySlotForChannel(null, "PHONE"), {ok: false, reason: "slot_not_found"});
+assert.deepEqual(validateAvailabilitySlotForChannel({...baseSlot, active: false}, "PHONE"), {ok: false, reason: "slot_inactive"});
+assert.deepEqual(validateAvailabilitySlotForChannel({...baseSlot, contactAuthorized: false}, "PHONE"), {ok: false, reason: "contact_not_authorized"});
+assert.deepEqual(validateAvailabilitySlotForChannel({...baseSlot, contactActive: false}, "WHATSAPP"), {ok: false, reason: "contact_not_authorized"});
+assert.deepEqual(validateAvailabilitySlotForChannel({...baseSlot, contactPhone: null}, "PHONE"), {ok: false, reason: "channel_not_available"});
+assert.deepEqual(validateAvailabilitySlotForChannel({...baseSlot, contactPhone: "  "}, "PHONE"), {ok: false, reason: "channel_not_available"});
+assert.deepEqual(validateAvailabilitySlotForChannel({...baseSlot, contactWhatsapp: null}, "WHATSAPP"), {ok: false, reason: "channel_not_available"});
+assert.equal(isSlotCompatibleWithChannel({...baseSlot, contactPhone: null}, "WHATSAPP"), true);
+assert.equal(isSlotCompatibleWithChannel({...baseSlot, contactWhatsapp: null}, "PHONE"), true);
+
+// Real time-zone conversion: 09:00 Monday in Los Angeles is 12:00 Monday in New York (Oct 2026, DST)
+const referenceMonday = new Date(Date.UTC(2026, 9, 12, 12, 0, 0));
+const laMorning = wallTimeToUtc(2026, 10, 12, "09:00", "America/Los_Angeles");
+assert.equal(laMorning.toISOString(), "2026-10-12T16:00:00.000Z");
+const converted = buildPublicSlot(
+  {id: "550e8400-e29b-41d4-a716-446655440000", weekday: 1, startTime: "09:00", endTime: "09:30", contactTimezone: "America/Los_Angeles"},
+  "America/New_York",
+  referenceMonday,
+);
+assert.ok(converted);
+assert.equal(converted.id, "550e8400-e29b-41d4-a716-446655440000");
+assert.match(converted.label, /12:00/);
+assert.match(converted.label, /your time/);
+
+// Weekday shift across the Pacific: Tuesday 09:00 in Tokyo is Monday afternoon in Los Angeles
+const tokyoMorning = buildPublicSlot(
+  {id: "660e8400-e29b-41d4-a716-446655440000", weekday: 2, startTime: "09:00", endTime: "09:30", contactTimezone: "Asia/Tokyo"},
+  "America/Los_Angeles",
+  referenceMonday,
+);
+assert.ok(tokyoMorning);
+assert.match(tokyoMorning.label, /Mon/);
+
+// Notification types cover the four approved internal events
+assert.deepEqual([...PRAYER_NOTIFICATION_TYPES], ["NEW_PRAYER_REQUEST", "NEW_CONTACT_REQUEST", "PENDING_ASSIGNMENT", "ASSIGNMENT_MADE"]);
+assert.equal(isPrayerNotificationType("NEW_PRAYER_REQUEST"), true);
+assert.equal(isPrayerNotificationType("ASSIGNMENT_MADE"), true);
+assert.equal(isPrayerNotificationType("TELEGRAM_SENT"), false);
+assert.equal(isPrayerNotificationType(null), false);
 
 // Check API routes exist
 const prayerRoutePath = join(root, "src/app/api/prayer/route.ts");
@@ -270,6 +357,70 @@ const notificationRoute = readFileSync(notificationRoutePath, "utf8");
 assert.match(notificationRoute, /requireMinistryManager/);
 assert.match(notificationRoute, /notificationPreference/);
 
+// Public availability endpoint: no personal data, real UUID, channel filter, real conversion
+const publicAvailabilityPath = join(root, "src/app/api/prayer/availability/route.ts");
+const publicAvailability = readFileSync(publicAvailabilityPath, "utf8");
+assert.match(publicAvailability, /buildPublicSlot/);
+assert.match(publicAvailability, /isSlotCompatibleWithChannel/);
+assert.match(publicAvailability, /invalid_contact_channel/);
+assert.ok(!publicAvailability.includes("contactName"));
+assert.ok(!publicAvailability.includes("telegram"));
+assert.ok(!publicAvailability.includes("contactId:"));
+// Phone/whatsapp are read server-side only for channel gating, never serialized:
+// the response carries solely the safe slot shape built by buildPublicSlot.
+assert.match(publicAvailability, /select: \{timezone: true, active: true, authorized: true, phone: true, whatsapp: true\}/);
+assert.match(publicAvailability, /slots\.push\(slot\)/);
+assert.match(publicAvailability, /PublicAvailabilitySlot/);
+
+// POST validates the real slot server-side and allows pending without slot
+assert.match(prayerRoute, /validateAvailabilitySlotForChannel/);
+assert.match(prayerRoute, /PENDING_ASSIGNMENT/);
+assert.match(prayerRoute, /notifyAdmins/);
+assert.match(prayerRoute, /NEW_CONTACT_REQUEST/);
+
+// Assignment notifies other admins, excluding the actor
+assert.match(adminPrayerIdRoute, /notifyAdmins/);
+assert.match(adminPrayerIdRoute, /ASSIGNMENT_MADE/);
+assert.match(adminPrayerIdRoute, /excludeUserId/);
+
+// Internal notifications: entity, listing/reading APIs, panel UI with read state
+const notificationsApiPath = join(root, "src/app/api/admin/notifications/route.ts");
+const notificationsApi = readFileSync(notificationsApiPath, "utf8");
+assert.match(notificationsApi, /requireMinistryManager/);
+assert.match(notificationsApi, /prayerNotification/);
+assert.match(notificationsApi, /unreadCount/);
+assert.match(notificationsApi, /read-all/);
+
+const notificationIdApiPath = join(root, "src/app/api/admin/notifications/[id]/route.ts");
+const notificationIdApi = readFileSync(notificationIdApiPath, "utf8");
+assert.match(notificationIdApi, /requireMinistryManager/);
+assert.match(notificationIdApi, /userId !== actor\.id/);
+
+const notificationsLibPath = join(root, "src/lib/prayer-notifications.ts");
+const notificationsLib = readFileSync(notificationsLibPath, "utf8");
+assert.match(notificationsLib, /SUPER_ADMIN/);
+assert.match(notificationsLib, /notifyAdmins/);
+assert.ok(!notificationsLib.toLowerCase().includes("telegram"));
+assert.ok(!notificationsLib.toLowerCase().includes("whatsapp") || notificationsLib.includes("contactWhatsapp") === false);
+
+const notificationsPagePath = join(root, "src/app/admin/notifications/page.tsx");
+assert.ok(readFileSync(notificationsPagePath, "utf8").includes("NotificationsList"));
+
+const notificationsListPath = join(root, "src/components/admin/NotificationsList.tsx");
+const notificationsList = readFileSync(notificationsListPath, "utf8");
+assert.match(notificationsList, /Mark read/);
+assert.match(notificationsList, /Mark all read/);
+assert.match(notificationsList, /unread/);
+
+// Integrity migration: foreign keys plus legacy consent correction
+const integrityMigrationPath = join(root, "prisma/migrations/20261013210000_prayer_contact_integrity/migration.sql");
+const integrityMigration = readFileSync(integrityMigrationPath, "utf8");
+assert.match(integrityMigration, /prayer_assignments_contact_id_fkey/);
+assert.match(integrityMigration, /usher_availability_contact_id_fkey/);
+assert.match(integrityMigration, /prayer_requests_availability_slot_id_fkey/);
+assert.match(integrityMigration, /consent_to_contact/);
+assert.match(integrityMigration, /prayer_notifications/);
+
 // Check components exist
 const prayerFormPath = join(root, "src/components/prayer/PrayerForm.tsx");
 const prayerForm = readFileSync(prayerFormPath, "utf8");
@@ -297,8 +448,11 @@ console.log("verify-prayer-contact: all checks passed");
 console.log("  - Country and channel validation (US/CA/MX direct, others WhatsApp only)");
 console.log("  - Consent validation (separate store and contact consent)");
 console.log("  - Phone/WhatsApp validation (international format)");
-console.log("  - Time zone validation (IANA)");
+console.log("  - Time zone validation (IANA) plus real contact-to-visitor conversion");
+console.log("  - Availability contract: real UUID, optional slot, pending without slot, channel gating");
 console.log("  - Status transition validation");
+console.log("  - Public availability exposes no personal data");
 console.log("  - API routes protected with requireMinistryManager + hasValidPublicOrigin");
 console.log("  - CSV export with audit logging");
-console.log("  - Notification preferences (internal only)");
+console.log("  - Internal notifications per preference with read/unread UI (no external channels)");
+console.log("  - Integrity migration: foreign keys plus legacy consent correction");

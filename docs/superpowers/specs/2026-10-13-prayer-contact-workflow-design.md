@@ -1,4 +1,4 @@
-# Diseño: peticiones de oración y contacto pastoral
+﻿# Diseño: peticiones de oración y contacto pastoral
 
 **Fecha:** 2026-10-13
 **Estado:** aprobado para implementación
@@ -312,3 +312,13 @@ Se extiende `AuditLog` con acciones:
 - Integración con n8n para envío de eventos
 - Configuración de SMTP para email
 - Cualquier integración de pago
+
+## 11. Correcciones de integridad (misma rama, sin despliegue)
+
+1. **Contrato de horarios:** el valor persistido en availabilitySlotId es el UUID real de UsherAvailability (relacion Prisma con onDelete SetNull). La franja es opcional; sin franja compatible la solicitud queda PENDING_ASSIGNMENT. El servidor valida existencia, actividad, contacto activo/autorizado y compatibilidad de canal.
+
+2. **Privacidad del endpoint p�blico:** GET /api/prayer/availability responde solo {id, label, date, startTime, endTime} en la zona del visitante. Tel�fono/WhatsApp se leen solo en servidor para el filtro por canal.
+
+3. **Notificaciones internas:** entidad PrayerNotification por destinatario con estado le�do/no le�do, creada seg�n preferencias, visible en /admin/notifications. Sin canales externos.
+
+4. **Datos heredados:** consent_to_contact=false en filas migradas; las NEW sin texto real pasan a PENDING_ASSIGNMENT para revisi�n manual. No contactar esas filas sin consentimiento nuevo.

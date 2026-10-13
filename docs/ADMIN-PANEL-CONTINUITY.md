@@ -141,8 +141,9 @@ Implementada en `feature/prayer-contact-workflow` según `docs/superpowers/specs
 
 1. **Modelo:** `UsherAvailability` con `contactId` vinculado a `MinistryContact`. Migración segura conserva filas legacy.
 2. **Candidatos:** solo contactos `active=true`, `authorized=true` con canal apropiado.
-3. **Cálculo de franjas:** conversión de zona horaria del ujier a la del visitante.
-4. **Sin disponibilidad:** la solicitud se guarda como `PENDING_ASSIGNMENT` sin prometer contacto inmediato.
+3. **Cálculo de franjas:** conversión real de zona horaria (`src/lib/prayer-availability.ts`: instante UTC desde la zona del contacto, etiqueta en la zona del visitante, con cambio de día incluido).
+4. **Sin disponibilidad:** la franja es opcional; sin franja compatible la solicitud se guarda como `PENDING_ASSIGNMENT` sin prometer contacto inmediato.
+5. **Contrato público:** `GET /api/prayer/availability` devuelve solo `{id, label, date, startTime, endTime}` con el UUID real de `UsherAvailability`. Sin nombres, teléfonos, Telegram ni identificadores internos. `POST /api/prayer` valida en servidor existencia, actividad, autorización del contacto y compatibilidad de canal (400 `invalid_availability_slot` si falla).
 
 ### Gestión administrativa (`/admin/prayer-requests`)
 
@@ -156,8 +157,9 @@ Implementada en `feature/prayer-contact-workflow` según `docs/superpowers/specs
 ### Notificaciones internas
 
 1. **Preferencias por usuario:** `NotificationPreference` con `newPrayerRequest`, `newContactRequest`, `pendingAssignment`, `assignmentMade`.
-2. **Solo panel:** las preferencias controlan avisos internos; no activan Telegram, correo ni WhatsApp.
-3. **UI:** sección "Notification preferences" en `/admin/configs` (Settings).
+2. **Alertas reales:** entidad `PrayerNotification` por destinatario (`NEW_PRAYER_REQUEST`, `NEW_CONTACT_REQUEST`, `PENDING_ASSIGNMENT`, `ASSIGNMENT_MADE`), creada al persistir la solicitud y al asignar (excluye al actor). Solo reciben `SUPER_ADMIN`/`ADMIN` activos con la preferencia habilitada (sin fila = habilitado por defecto).
+3. **Solo panel:** las preferencias controlan avisos internos; no activan Telegram, correo ni WhatsApp. Los fallos de notificación nunca rompen el flujo público ni la asignación.
+4. **UI:** página `/admin/notifications` con lista, contador de no leídas, marcar leída/no leída y "marcar todas"; indicador con conteo en la navegación; sección "Notification preferences" en `/admin/configs` (Settings).
 
 ### Límites respetados
 
@@ -166,15 +168,21 @@ Implementada en `feature/prayer-contact-workflow` según `docs/superpowers/specs
 - Sin activar integraciones externas (Telegram, WhatsApp, correo, n8n).
 - Paleta navy/verde/lima, iconos Tabler, claro/oscuro y drawer responsive conservados; CSS propio sin Tailwind.
 
+### Integridad y datos heredados
+
+- **Claves foráneas:** migración `20261013210000_prayer_contact_integrity` añade las FK declaradas por el schema (`prayer_assignments.contact_id` SET NULL, `usher_availability.contact_id` CASCADE, `prayer_requests.availability_slot_id` SET NULL) y la tabla `prayer_notifications`.
+- **Consentimiento heredado:** la primera migración marcó `consent_to_contact=true` en filas heredadas, pero el texto separado de consentimiento no existía entonces. La migración de integridad lo revierte a `false` en filas con mensaje heredado y mueve las aún `NEW` sin texto real a `PENDING_ASSIGNMENT` para revisión manual. Esas filas conservan sus datos como registro histórico y **no deben contactarse sin consentimiento explícito nuevo**. Asignación siempre manual a un solo contacto.
+
 ### Verificación de esta fase
 
 - `npm run prisma:generate`, `npm run lint`, `npm run typecheck`, `npm run build` y `git diff --check` pasaron.
-- Verificación reproducible: `npm run verify:prayer-contact` (`scripts/verify-prayer-contact.mts`) cubre países/canales, consentimiento separado, validación de teléfono/WhatsApp, zona horaria, transiciones de estado y protección de APIs.
-- Pendiente: validación visual autenticada real con datos de la base aislada.
+- Verificación reproducible: `npm run verify:prayer-contact` (`scripts/verify-prayer-contact.mts`) cubre países/canales, consentimiento separado, validación de teléfono/WhatsApp, zona horaria y conversión real contacto→visitante, contrato UUID de franjas, `PENDING_ASSIGNMENT` sin slot, rechazo de slots inválidos/inactivos/no autorizados, endpoint público sin datos personales, alertas internas por preferencia con UI leído/no leído, FKs y corrección de consentimiento heredado.
+- Visual público: formulario verificado en escritorio 1440 y móvil 390 (`C:\ProgramandoconClaude\Reportes\IPEC\prayer-contact-workflow\`, 4 archivos: vista simple y con contacto). Nota: el dev server solo acepta `localhost` como origen (`allowedDevOrigins`); por `127.0.0.1` la hidratación queda bloqueada y la interacción no responde. Sin cambios de código por esto.
+- Pendiente: validación visual autenticada real con datos de la base aislada (panel y notificaciones requieren sesión; no se creó ninguna).
 
 ### Pendiente en esta fase
 
-- Aplicar la migración en la BD aislada de demo (`npx prisma migrate deploy`) al momento del despliegue.
+- Aplicar las migraciones en la BD aislada de demo (`npx prisma migrate deploy`) al momento del despliegue.
 - Validación visual autenticada real con datos de la base aislada.
 - Desplegar a demo y fusionar a `nextjs-migration` solo tras aprobación.
 
