@@ -187,6 +187,41 @@ Implementada en `feature/prayer-contact-workflow` según `docs/superpowers/specs
 - Validación visual autenticada real con datos de la base aislada.
 - Desplegar a demo y fusionar a `nextjs-migration` solo tras aprobación.
 
+## Experiencia admin e invitaciones (rama; sin desplegar)
+
+Implementada en `feature/admin-experience-and-invitations` (basada en `origin/nextjs-migration@4bc6850`). Sin desplegar; no crear PR hasta autorización.
+
+### Shell admin aislado
+
+1. **Sin header público:** `Header` retorna `null` en `/admin/*`; `AdminBodyClass` marca `body.is-admin` para anular el offset del header fijo. Sticky de navegación/topbar en `top: 0` y `min-height: 100vh`.
+2. **Drawer móvil único:** sin encabezado duplicado; overlay solo con menú abierto; cerrar sesión también cierra el drawer; sin scroll horizontal (`overflow-x: clip`).
+3. **Cerrar sesión → `/`:** con revocación de sesión vía `authClient.signOut()`.
+4. **Ancho principal:** `.admin-workspace` usa `min(90%, 88rem)` centrado; móvil responsive intacto.
+5. **Contexto de perfil:** `AdminUserChip` en el topbar con nombre/correo y enlace a `/admin/configs`.
+
+### Formulario público rediseñado
+
+1. **Tarjetas seleccionables** para tipo de petición y canal, con radio visual integrado, área táctil completa y foco visible; responsive (2 columnas → 1 en móvil).
+2. **Orden:** Name (requerido y marcado), Email opcional, Prayer request (requerido, máximo 1000, contador visible, validación cliente+servidor), tipo de petición.
+3. **Canal primero:** Direct call muestra selector buscable de país limitado a US/PR/CA/MX con nota explicativa; fuera de esos países se fuerza WhatsApp. WhatsApp no exige ni restringe país.
+4. **Consents separados** accesibles; `suggestedCountry` prepara sugerencia geográfica futura sin geolocalización/IP en esta rama.
+5. **Cinco idiomas** intactos; validaciones de consentimiento, privacidad, horarios, canales y asignación manual preservadas (PR se suma a llamadas directas; mensaje máximo 1000).
+
+### Invitaciones sin contraseñas
+
+1. **Sin contraseña temporal:** `POST /api/admin/users` crea la cuenta sin credenciales + invitación de un solo uso (token SHA-256, 24 h, auditoría `USER_CREATED`/`INVITATION_CREATED`). Responde `emailSent` honesto.
+2. **Correo `no-reply@suplenitud.com`:** plantilla HTML centralizada y responsive (`src/lib/mail/`); solo la plantilla de invitación puede enviar; SMTP por variables de entorno; sin configuración se reporta `smtp_not_configured` sin falso envío. Recuperación y avisos quedan preparados pero desactivados.
+3. **Aceptación:** `/invite/[token]` + `POST /api/invitations/accept` (mínimo 8, cuenta credential `accountId=userId`, marca `usedAt`, auditoría). Tokens usados/revocados/vencidos → 410; reenvío rota y revoca el anterior; revocado cancela; cuenta completada protegida contra reenvío.
+4. **Bloqueo de login:** hook de sesión rechaza usuarios con invitación pendiente (además de no existir credenciales).
+5. **UI usuarios:** crear/cancelar en la misma fila (crear derecha, cancelar izquierda en rojo); insignia "Invitation pending"; reenviar/revocar con confirmación; matriz de roles intacta (sin SUPER_ADMIN desde UI).
+6. **Migración `20261014000000_user_invitations`:** solo crea `user_invitations`; usuarios existentes preservados.
+
+### Verificación de esta fase
+
+- `npm run verify:invitations` (tokens, expiración/uso/revocación, mínimo 8, bloqueo de login, reenvío/revocación, SMTP honesto, permisos, migración), `verify:admin-users`, `verify:prayer-contact`, `prisma:generate`, `lint`, `typecheck`, `build`, `git diff --check`: todo pasa.
+- Capturas reales del formulario (simple, contacto, canal directo) en 1440 y 390: `C:\ProgramandoconClaude\Reportes\IPEC\admin-experience-and-invitations\` (6 archivos).
+- Pendiente: validación visual autenticada del panel (requiere sesión real) y prueba de envío SMTP real (requiere credenciales MailCow en el entorno, nunca en Git).
+
 ## Próximas fases, en orden
 
 El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La Fase 1 (Usuarios, Contactos ministeriales y Perfil) está implementada en rama; la siguiente autorizada tras desplegarla es la Fase 2.
