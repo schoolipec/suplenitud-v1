@@ -3,6 +3,7 @@ import {requireMinistryManager} from "@/lib/access";
 import {hasValidPublicOrigin} from "@/lib/request-origin";
 import {prisma} from "@/lib/db/client";
 import {isValidPrayerRequestStatus, canTransitionTo} from "@/lib/prayer-validation";
+import {notifyAdmins} from "@/lib/prayer-notifications";
 
 export async function GET(request: Request, {params}: {params: Promise<{id: string}>}) {
   if (!hasValidPublicOrigin(request)) {
@@ -114,6 +115,17 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
         metadata: {contactId: body.contactId},
       },
     });
+
+    try {
+      await notifyAdmins({
+        type: "ASSIGNMENT_MADE",
+        requestId: id,
+        title: `Contact assigned for request from ${existing.name.slice(0, 80)}`,
+        excludeUserId: actor.id,
+      });
+    } catch {
+      // Internal alerts must never break the assignment flow.
+    }
   }
 
   if (Object.keys(updates).length > 0) {

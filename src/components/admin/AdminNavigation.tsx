@@ -7,6 +7,7 @@ import {authClient} from "@/lib/auth-client";
 import {
   IconAddressBook,
   IconArticle,
+  IconBell,
   IconChartBar,
   IconHeartHandshake,
   IconLayoutDashboard,
@@ -26,6 +27,7 @@ export function AdminNavigation({roles}: {roles: string[]}) {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const isSuperAdmin = roles.includes("SUPER_ADMIN");
@@ -37,10 +39,25 @@ export function AdminNavigation({roles}: {roles: string[]}) {
     {href: "/admin/visits", label: "Visits", icon: IconChartBar, visible: isSuperOrAdmin},
     {href: "/admin/template", label: "Website content", icon: IconArticle, visible: isSuperOrAdmin},
     {href: "/admin/prayer-requests", label: "Prayer requests", icon: IconPray, visible: isSuperOrAdmin},
+    {href: "/admin/notifications", label: unreadCount > 0 ? `Notifications (${unreadCount})` : "Notifications", icon: IconBell, visible: isSuperOrAdmin},
     {href: "/admin/ushers", label: "Ushers", icon: IconUsersGroup, visible: isSuperOrAdmin},
     {href: "/admin/donations", label: "Donations", icon: IconHeartHandshake, visible: isSuperAdmin || roles.includes("TREASURER")},
     {href: "/admin/configs", label: "Settings", icon: IconSettings},
   ].filter((item) => item.visible !== false);
+
+  useEffect(() => {
+    if (!isSuperOrAdmin) return;
+    let cancelled = false;
+    void fetch("/api/admin/notifications?unreadOnly=true&take=1", {cache: "no-store"})
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled && data && typeof data.unreadCount === "number") setUnreadCount(data.unreadCount);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuperOrAdmin, pathname]);
 
   useEffect(() => {
     if (!menuOpen) return;
