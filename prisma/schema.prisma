@@ -92,6 +92,7 @@ model User {
   auditEvents        AuditLog[] @relation("AuditActor")
   twoFactor          TwoFactor?
   notificationPreference NotificationPreference?
+  prayerNotifications PrayerNotification[]
 
   @@unique([email])
   @@map("user")
@@ -209,6 +210,8 @@ model PrayerRequest {
   createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
   assignments       PrayerAssignment[]
+  availabilitySlot  UsherAvailability?  @relation(fields: [availabilitySlotId], references: [id], onDelete: SetNull)
+  notifications     PrayerNotification[]
 
   @@index([status, createdAt])
   @@index([requestType, createdAt])
@@ -241,10 +244,34 @@ model UsherAvailability {
   endTime   String   @map("end_time")
   active    Boolean  @default(true)
   contact   MinistryContact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  prayerRequests PrayerRequest[]
 
   @@index([usherName, weekday])
   @@index([contactId, weekday])
   @@map("usher_availability")
+}
+
+enum PrayerNotificationType {
+  NEW_PRAYER_REQUEST
+  NEW_CONTACT_REQUEST
+  PENDING_ASSIGNMENT
+  ASSIGNMENT_MADE
+}
+
+model PrayerNotification {
+  id        String                @id @default(uuid()) @db.Uuid
+  userId    String                @map("user_id")
+  type      PrayerNotificationType
+  requestId String?               @map("request_id") @db.Uuid
+  title     String
+  read      Boolean               @default(false)
+  readAt    DateTime?             @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request   PrayerRequest?        @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read, createdAt])
+  @@map("prayer_notifications")
 }
 
 model NotificationPreference {

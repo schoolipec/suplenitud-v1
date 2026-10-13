@@ -159,8 +159,10 @@ export function validatePrayerRequest(input: {
       errors.push("invalid_time_zone");
     }
 
-    if (typeof input.availabilitySlotId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.availabilitySlotId)) {
-      errors.push("invalid_availability_slot");
+    if (input.availabilitySlotId !== undefined && input.availabilitySlotId !== null && input.availabilitySlotId !== "") {
+      if (typeof input.availabilitySlotId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.availabilitySlotId)) {
+        errors.push("invalid_availability_slot");
+      }
     }
   }
 
