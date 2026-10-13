@@ -22,6 +22,11 @@ export const auth = betterAuth({
             select: {active: true},
           });
           if (!user?.active) return false;
+          const pendingInvitation = await prisma.userInvitation.findFirst({
+            where: {userId: session.userId, usedAt: null, revokedAt: null},
+            select: {id: true},
+          });
+          if (pendingInvitation) return false;
           return true;
         },
       },
