@@ -1,4 +1,4 @@
-export const DIRECT_CONTACT_COUNTRIES = ["US", "CA", "MX"] as const;
+export const DIRECT_CONTACT_COUNTRIES = ["US", "PR", "CA", "MX"] as const;
 export type DirectContactCountry = (typeof DIRECT_CONTACT_COUNTRIES)[number];
 
 export const CONTACT_CHANNELS = ["PHONE", "WHATSAPP"] as const;
@@ -59,8 +59,10 @@ export function isValidTimeZone(tz: unknown): boolean {
   }
 }
 
+export const PRAYER_MESSAGE_MAX_LENGTH = 1000;
+
 export function isValidMessage(message: unknown): boolean {
-  return typeof message === "string" && message.trim().length >= 10 && message.trim().length <= 2000;
+  return typeof message === "string" && message.trim().length >= 10 && message.trim().length <= PRAYER_MESSAGE_MAX_LENGTH;
 }
 
 export function isValidEmail(email: unknown): boolean {
@@ -154,19 +156,25 @@ export function validatePrayerRequest(input: {
       errors.push("consent_to_contact_required");
     }
 
-    if (!isValidCountryCode(input.country)) {
-      errors.push("invalid_country");
-    } else {
-      const channels = getAvailableChannels(input.country);
-      if (!isValidContactChannel(input.contactChannel) || !channels.includes(input.contactChannel)) {
-        errors.push("invalid_contact_channel");
+    if (!isValidContactChannel(input.contactChannel)) {
+      errors.push("invalid_contact_channel");
+    } else if (input.contactChannel === "PHONE") {
+      if (!isValidCountryCode(input.country) || !isDirectContactCountry(input.country)) {
+        errors.push("invalid_country");
       }
-
-      if (input.contactChannel === "PHONE" && !isValidPhoneNumber(input.phone)) {
+      if (!isValidPhoneNumber(input.phone)) {
         errors.push("invalid_phone");
       }
-
-      if (input.contactChannel === "WHATSAPP" && !isValidWhatsAppNumber(input.whatsapp)) {
+    } else {
+      if (
+        input.country !== undefined &&
+        input.country !== null &&
+        input.country !== "" &&
+        !isValidCountryCode(input.country)
+      ) {
+        errors.push("invalid_country");
+      }
+      if (!isValidWhatsAppNumber(input.whatsapp)) {
         errors.push("invalid_whatsapp");
       }
     }

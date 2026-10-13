@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     return NextResponse.json({error: "invalid_time_zone"}, {status: 400});
   }
 
-  if (!country || !isValidCountryCode(country)) {
+  if (country && !isValidCountryCode(country)) {
     return NextResponse.json({error: "invalid_country"}, {status: 400});
   }
 
