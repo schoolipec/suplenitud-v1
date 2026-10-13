@@ -85,6 +85,22 @@ export function isValidAvailabilityRange(startTime: string, endTime: string): bo
   return startTime < endTime;
 }
 
+/**
+ * Assignment gate: a contact may only be assigned to a contact-type request
+ * with explicit contact consent that is not closed. Inherited rows (consent
+ * revoked by migration) and PRAYER_ONLY rows can never receive an assignment.
+ */
+export function canAssignContact(input: {
+  requestType?: unknown;
+  consentToContact?: unknown;
+  status?: unknown;
+}): {allowed: boolean; reason: string} {
+  if (input.requestType !== "PRAYER_AND_CONTACT") return {allowed: false, reason: "request_type_not_contact"};
+  if (input.consentToContact !== true) return {allowed: false, reason: "contact_consent_missing"};
+  if (input.status === "CLOSED") return {allowed: false, reason: "request_closed"};
+  return {allowed: true, reason: "ok"};
+}
+
 export function canTransitionTo(from: PrayerRequestStatus, to: PrayerRequestStatus): boolean {
   if (from === to) return true;
   const transitions: Record<PrayerRequestStatus, PrayerRequestStatus[]> = {

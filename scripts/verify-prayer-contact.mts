@@ -16,6 +16,7 @@ import {
   isValidTimeFormat,
   isValidAvailabilityRange,
   canTransitionTo,
+  canAssignContact,
   validatePrayerRequest,
 } from "../src/lib/prayer-validation";
 import {
@@ -139,6 +140,44 @@ assert.equal(canTransitionTo("ASSIGNED", "CLOSED"), true);
 assert.equal(canTransitionTo("CONTACTED", "CLOSED"), true);
 assert.equal(canTransitionTo("CLOSED", "NEW"), false);
 assert.equal(canTransitionTo("CLOSED", "ASSIGNED"), false);
+
+// Assignment consent gate: contact assignment requires contact-type request,
+// explicit contact consent, and a non-closed request
+assert.deepEqual(
+  canAssignContact({requestType: "PRAYER_AND_CONTACT", consentToContact: true, status: "NEW"}),
+  {allowed: true, reason: "ok"},
+);
+assert.deepEqual(
+  canAssignContact({requestType: "PRAYER_AND_CONTACT", consentToContact: true, status: "PENDING_ASSIGNMENT"}),
+  {allowed: true, reason: "ok"},
+);
+assert.deepEqual(
+  canAssignContact({requestType: "PRAYER_AND_CONTACT", consentToContact: true, status: "ASSIGNED"}),
+  {allowed: true, reason: "ok"},
+);
+// PRAYER_ONLY + contactId => rejected, even with open status
+assert.deepEqual(
+  canAssignContact({requestType: "PRAYER_ONLY", consentToContact: false, status: "NEW"}),
+  {allowed: false, reason: "request_type_not_contact"},
+);
+// Contact type but consent revoked (including inherited rows) => rejected
+assert.deepEqual(
+  canAssignContact({requestType: "PRAYER_AND_CONTACT", consentToContact: false, status: "NEW"}),
+  {allowed: false, reason: "contact_consent_missing"},
+);
+assert.deepEqual(
+  canAssignContact({requestType: "PRAYER_AND_CONTACT", consentToContact: false, status: "PENDING_ASSIGNMENT"}),
+  {allowed: false, reason: "contact_consent_missing"},
+);
+// CLOSED request + contactId => rejected even with consent
+assert.deepEqual(
+  canAssignContact({requestType: "PRAYER_AND_CONTACT", consentToContact: true, status: "CLOSED"}),
+  {allowed: false, reason: "request_closed"},
+);
+// Missing fields default to rejection, never to silent assignment
+assert.deepEqual(canAssignContact({}), {allowed: false, reason: "request_type_not_contact"});
+// Closing a PRAYER_ONLY request without assignment stays allowed
+assert.equal(canTransitionTo("NEW", "CLOSED"), true);
 
 // Full prayer request validation - PRAYER_ONLY
 const prayerOnlyValid = validatePrayerRequest({
@@ -378,6 +417,22 @@ assert.match(prayerRoute, /PENDING_ASSIGNMENT/);
 assert.match(prayerRoute, /notifyAdmins/);
 assert.match(prayerRoute, /NEW_CONTACT_REQUEST/);
 
+// Assignment consent gate: enforced before any assignment side effect
+assert.match(adminPrayerIdRoute, /canAssignContact/);
+assert.match(adminPrayerIdRoute, /assignment_not_allowed/);
+assert.match(adminPrayerIdRoute, /status: 403/);
+assert.ok(
+  adminPrayerIdRoute.indexOf("assignment_not_allowed") < adminPrayerIdRoute.indexOf("prayerAssignment.create"),
+  "gate must reject before creating a PrayerAssignment",
+);
+assert.ok(
+  adminPrayerIdRoute.indexOf("assignment_not_allowed") < adminPrayerIdRoute.indexOf("ASSIGNMENT_MADE"),
+  "gate must reject before emitting the assignment alert",
+);
+// Valid assignment keeps manual single authorized active contact
+assert.match(adminPrayerIdRoute, /invalid_contact/);
+assert.match(adminPrayerIdRoute, /assignments\[0\]/);
+
 // Assignment notifies other admins, excluding the actor
 assert.match(adminPrayerIdRoute, /notifyAdmins/);
 assert.match(adminPrayerIdRoute, /ASSIGNMENT_MADE/);
@@ -451,6 +506,7 @@ console.log("  - Phone/WhatsApp validation (international format)");
 console.log("  - Time zone validation (IANA) plus real contact-to-visitor conversion");
 console.log("  - Availability contract: real UUID, optional slot, pending without slot, channel gating");
 console.log("  - Status transition validation");
+console.log("  - Assignment consent gate (PRAYER_ONLY, missing consent, CLOSED rejected; valid keeps single contact)");
 console.log("  - Public availability exposes no personal data");
 console.log("  - API routes protected with requireMinistryManager + hasValidPublicOrigin");
 console.log("  - CSV export with audit logging");

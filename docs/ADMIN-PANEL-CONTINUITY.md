@@ -148,6 +148,7 @@ Implementada en `feature/prayer-contact-workflow` según `docs/superpowers/specs
 ### Gestión administrativa (`/admin/prayer-requests`)
 
 1. **Cola profesional:** filtros por estado, tipo, país, canal, fecha y disponibilidad; detalle protegido; candidatos sugeridos; asignación manual explícita.
+2. **Puerta de consentimiento en asignación:** `PATCH /api/admin/prayer-requests/[id]` rechaza con 403 `assignment_not_allowed` si la petición no es `PRAYER_AND_CONTACT`, no tiene `consentToContact`, o está `CLOSED` (incluye heredadas migradas). El rechazo no crea `PrayerAssignment`, no cambia a `ASSIGNED` ni emite `ASSIGNMENT_MADE`. Cerrar una `PRAYER_ONLY` sin asignar sigue permitido; la asignación válida conserva un solo contacto activo y autorizado.
 2. **Estados:** `NEW`, `PENDING_ASSIGNMENT`, `ASSIGNED`, `CONTACTED`, `CLOSED` con transiciones validadas.
 3. **Permisos:** `SUPER_ADMIN` y `ADMIN` gestionan; `TREASURER` y `USHER` no acceden.
 4. **Auditoría:** `PRAYER_REQUEST_CREATED`, `PRAYER_REQUEST_ASSIGNED`, `PRAYER_REQUEST_STATUS_CHANGED`, `PRAYER_REQUEST_EXPORTED`.

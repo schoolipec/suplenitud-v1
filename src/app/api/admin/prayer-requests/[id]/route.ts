@@ -2,7 +2,7 @@ import {NextResponse} from "next/server";
 import {requireMinistryManager} from "@/lib/access";
 import {hasValidPublicOrigin} from "@/lib/request-origin";
 import {prisma} from "@/lib/db/client";
-import {isValidPrayerRequestStatus, canTransitionTo} from "@/lib/prayer-validation";
+import {isValidPrayerRequestStatus, canTransitionTo, canAssignContact} from "@/lib/prayer-validation";
 import {notifyAdmins} from "@/lib/prayer-notifications";
 
 export async function GET(request: Request, {params}: {params: Promise<{id: string}>}) {
@@ -76,6 +76,14 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
   }
 
   if (body.contactId) {
+    const assignmentGate = canAssignContact({
+      requestType: existing.requestType,
+      consentToContact: existing.consentToContact,
+      status: existing.status,
+    });
+    if (!assignmentGate.allowed) {
+      return NextResponse.json({error: "assignment_not_allowed", reason: assignmentGate.reason}, {status: 403});
+    }
     const contact = await prisma.ministryContact.findUnique({
       where: {id: body.contactId},
       select: {id: true, active: true, authorized: true, name: true},
