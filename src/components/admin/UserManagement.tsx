@@ -24,6 +24,7 @@ type ManagedUser = {
   twoFactorEnabled: boolean;
   roles: string[];
   lastActivityAt: string | null;
+  pendingInvitation: {id: string; expiresAt: string; createdAt: string} | null;
 };
 
 const roleLabels: Record<string, string> = {
@@ -48,7 +49,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [confirming, setConfirming] = useState<{id: string; action: "deactivate" | "activate" | "forcePassword"} | null>(null);
+  const [confirming, setConfirming] = useState<{id: string; action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke"} | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function loadUsers() {
@@ -83,18 +84,59 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
       body: JSON.stringify({
         name: form.get("name"),
         email: form.get("email"),
-        temporaryPassword: form.get("temporaryPassword"),
         role: form.get("role"),
       }),
     });
+    const data = await response.json().catch(() => null);
     setSaving(false);
     if (!response.ok) {
-      setMessage("The user could not be created. Verify the information and try again.");
+      setMessage(
+        data?.error === "email_already_exists"
+          ? "That email is already registered."
+          : "The user could not be created. Verify the information and try again.",
+      );
       return;
     }
     event.currentTarget.reset();
     setCreating(false);
-    setMessage("User created. Share the temporary password through a secure channel.");
+    setMessage(
+      data?.emailSent
+        ? "User created. An invitation was sent so the person can set their own password."
+        : "User created, but the invitation email could not be sent (mail is not configured). Use Resend invitation to retry.",
+    );
+    await loadUsers();
+  }
+
+  async function runInvitationAction(id: string, action: "resend" | "revoke") {
+    setMessage(null);
+    setSaving(true);
+    const response = await fetch(`/api/admin/users/${id}/invitation`, {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({action}),
+    });
+    const data = await response.json().catch(() => null);
+    setSaving(false);
+    setConfirming(null);
+    if (!response.ok) {
+      setMessage(
+        data?.error === "invitation_already_completed"
+          ? "This account already completed its invitation."
+          : data?.error === "invitation_not_found"
+            ? "There is no pending invitation for this account."
+            : "The invitation action could not be completed. Try again.",
+      );
+      return;
+    }
+    if (action === "resend") {
+      setMessage(
+        data?.emailSent
+          ? "Invitation resent. The previous link no longer works."
+          : "A new invitation link was created, but the email could not be sent (mail is not configured).",
+      );
+    } else {
+      setMessage("Invitation revoked. The pending link no longer works.");
+    }
     await loadUsers();
   }
 
@@ -186,7 +228,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
         {creating ? (
           <div className="admin-panel-box">
             <h3>Create user</h3>
-            <p>The temporary password must be changed on first sign-in.</p>
+            <p>No password is set here. The person receives a single-use invitation link (valid 24 hours) to choose their own password. The account cannot sign in until then.</p>
             <form onSubmit={onCreate} className="admin-auth-form admin-form-grid">
               <div>
                 <label htmlFor="user-name">Name</label>
@@ -204,13 +246,9 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
                   <option value="USHER">Usher — no panel access</option>
                 </select>
               </div>
-              <div>
-                <label htmlFor="user-temporary-password">Temporary password</label>
-                <input id="user-temporary-password" name="temporaryPassword" type="password" autoComplete="new-password" minLength={16} required />
-              </div>
-              <div className="admin-form-actions">
+              <div className="admin-form-actions admin-form-actions-split">
+                <button type="button" className="admin-button-danger" onClick={() => setCreating(false)}>Cancel</button>
                 <button type="submit" disabled={saving}>{saving ? "Creating…" : "Create user"}</button>
-                <button type="button" className="admin-button-ghost" onClick={() => setCreating(false)}>Cancel</button>
               </div>
             </form>
           </div>
@@ -302,6 +340,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
                     onConfirm={(action) => setConfirming({id: user.id, action})}
                     onCancelConfirm={() => setConfirming(null)}
                     onRunAction={runRowAction}
+                    onRunInvitationAction={runInvitationAction}
                   />
                 );
               })}
@@ -338,12 +377,13 @@ function UserRow({
   expanded: boolean;
   isSelf: boolean;
   saving: boolean;
-  confirming: {id: string; action: "deactivate" | "activate" | "forcePassword"} | null;
+  confirming: {id: string; action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke"} | null;
   onToggleExpand: () => void;
   onEdit: () => void;
-  onConfirm: (action: "deactivate" | "activate" | "forcePassword") => void;
+  onConfirm: (action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke") => void;
   onCancelConfirm: () => void;
   onRunAction: (id: string, action: "deactivate" | "activate" | "forcePassword") => Promise<void>;
+  onRunInvitationAction: (id: string, action: "resend" | "revoke") => Promise<void>;
 }) {
   const confirmForThisRow = confirming?.id === user.id ? confirming : null;
   return (
@@ -362,6 +402,11 @@ function UserRow({
           <span className={user.active ? "admin-badge admin-badge-success" : "admin-badge admin-badge-danger"}>
             {user.active ? "Active" : "Deactivated"}
           </span>
+          {user.pendingInvitation ? (
+            <span className="admin-badge admin-badge-muted" title={`Invitation sent ${formatDate(user.pendingInvitation.createdAt)}, expires ${formatDate(user.pendingInvitation.expiresAt)}`}>
+              Invitation pending
+            </span>
+          ) : null}
         </td>
         <td data-label="Two-factor" className="admin-col-2fa">
           <span className={user.twoFactorEnabled ? "admin-badge admin-badge-success" : "admin-badge admin-badge-muted"}>
@@ -393,7 +438,49 @@ function UserRow({
                     <IconKey size={17} aria-hidden />
                   </button>
                 )}
-                {confirmForThisRow?.action === "deactivate" ? (
+                {user.pendingInvitation && !confirmForThisRow ? (
+                  <>
+                    <button
+                      type="button"
+                      className="admin-button-secondary admin-button-small"
+                      onClick={() => onConfirm("resend")}
+                      disabled={saving}
+                    >
+                      Resend invitation
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-button-ghost admin-button-small"
+                      onClick={() => onConfirm("revoke")}
+                      disabled={saving}
+                    >
+                      Revoke
+                    </button>
+                  </>
+                ) : null}
+                {confirmForThisRow?.action === "resend" ? (
+                  <span className="admin-confirm-inline">
+                    <span>Resend invitation? The previous link stops working.</span>
+                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunInvitationAction(user.id, "resend")} aria-label="Confirm invitation resend">
+                      <IconCheck size={17} aria-hidden />
+                    </button>
+                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
+                      <IconBan size={17} aria-hidden />
+                    </button>
+                  </span>
+                ) : confirmForThisRow?.action === "revoke" ? (
+                  <span className="admin-confirm-inline">
+                    <span>Revoke invitation?</span>
+                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunInvitationAction(user.id, "revoke")} aria-label="Confirm invitation revoke">
+                      <IconCheck size={17} aria-hidden />
+                    </button>
+                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
+                      <IconBan size={17} aria-hidden />
+                    </button>
+                  </span>
+                ) : null}
+                {!confirmForThisRow || confirmForThisRow.action === "deactivate" || confirmForThisRow.action === "activate" ? (
+                  confirmForThisRow?.action === "deactivate" ? (
                   <span className="admin-confirm-inline">
                     <span>Deactivate?</span>
                     <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunAction(user.id, "deactivate")} aria-label="Confirm deactivation">
@@ -423,7 +510,8 @@ function UserRow({
                   >
                     {user.active ? <IconUserOff size={17} aria-hidden /> : <IconUserCheck size={17} aria-hidden />}
                   </button>
-                )}
+                )
+                : null}
               </>
             ) : (
               <span className="admin-self-badge">You</span>
@@ -443,6 +531,7 @@ function UserRow({
               <div><dt>Two-factor</dt><dd>{user.twoFactorEnabled ? "Active" : "Not configured"}</dd></div>
               <div><dt>Roles</dt><dd>{user.roles.map((role) => roleLabels[role] ?? role).join(", ")}</dd></div>
               <div><dt>Status</dt><dd>{user.active ? "Active" : "Deactivated"}</dd></div>
+              <div><dt>Invitation</dt><dd>{user.pendingInvitation ? `Pending — expires ${formatDate(user.pendingInvitation.expiresAt)}` : "Completed or none"}</dd></div>
             </dl>
           </td>
         </tr>

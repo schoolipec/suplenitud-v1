@@ -31,13 +31,26 @@ export default async function UsersPage() {
       twoFactorEnabled: true,
       roles: {select: {role: true}},
       sessions: {select: {updatedAt: true}, orderBy: {updatedAt: "desc"}, take: 1},
+      invitations: {
+        where: {usedAt: null, revokedAt: null},
+        orderBy: {createdAt: "desc"},
+        take: 1,
+        select: {id: true, expiresAt: true, createdAt: true},
+      },
     },
   });
-  const initialUsers = users.map(({sessions, ...item}) => ({
+  const initialUsers = users.map(({sessions, invitations, ...item}) => ({
     ...item,
     createdAt: item.createdAt.toISOString(),
     roles: item.roles.map(({role}) => role),
     lastActivityAt: sessions[0]?.updatedAt.toISOString() ?? null,
+    pendingInvitation: invitations[0]
+      ? {
+          id: invitations[0].id,
+          expiresAt: invitations[0].expiresAt.toISOString(),
+          createdAt: invitations[0].createdAt.toISOString(),
+        }
+      : null,
   }));
   return (
     <AdminFrame roles={roles} title="User management">
