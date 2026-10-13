@@ -1,8 +1,8 @@
 # Continuidad del panel administrativo
 
-**Actualizado:** 2026-10-12
+**Actualizado:** 2026-10-13
 
-**Rama:** `opencode/admin-panel-responsive` (basada en `nextjs-migration`)
+**Rama:** `feature/admin-operations-phase-1` (basada en `nextjs-migration@3690274`)
 
 **Entorno autorizado:** `demo.suplenitud.com` exclusivamente.
 
@@ -79,9 +79,51 @@ TOTP nativo de Better Auth está publicado en demo:
 5. Levantar solo el proyecto Compose `suplenitud-demo` con `deploy/docker-compose.demo.yml`; no tocar producción ni otras pilas.
 6. Verificar HTTPS, la redirección de ruta localizada, el cambio de contraseña y la presencia del endpoint 2FA. El propietario realiza la inscripción real desde `/admin/security` con su aplicación autenticadora.
 
+## Fase 1 de operaciones: usuarios, contactos ministeriales y perfil (rama; sin desplegar)
+
+Implementada en `feature/admin-operations-phase-1` según `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. Sin desplegar; no crear PR hasta autorización.
+
+### Usuarios (`/admin/users`, solo SUPER_ADMIN)
+
+1. **Schema:** columna `User.active` (default `true`) + migración `20261013100000_add_ministry_contacts_and_user_activation`.
+2. **API `GET /api/admin/users`:** devuelve además `active` y `lastActivityAt` (derivado de la sesión más reciente; sin inventar datos).
+3. **API `PATCH /api/admin/users/[id]`:** editar nombre; cambiar rol solo dentro de `ADMIN`/`TREASURER`/`USHER` (nunca asignar SUPER_ADMIN desde UI); forzar cambio de contraseña (`mustChangePassword` + revocación de sesiones); desactivar/reactivar (`active`). No se puede desactivar a uno mismo. Toda acción exige `requireSuperAdmin`, `hasValidPublicOrigin` y `auditLog` (`USER_UPDATED`).
+4. **UI `UserManagement`:** búsqueda por nombre/correo, filtros de rol y estado, badges de estado/2FA, actividad reciente, acciones visibles por fila (editar, forzar clave, desactivar/reactivar con confirmación en línea) sin depender de hover; auto-acciones ocultas para la propia cuenta (etiqueta "You"); en móvil la tabla se apila en tarjetas con detalle expandible. Crear usuario conserva el flujo existente (roles ADMIN/TREASURER/USHER; contraseña temporal ≥ 16).
+5. **Bloqueo de inactivos:** hook `databaseHooks.session.create.before` en `src/lib/auth.ts` impide crear sesiones de usuarios con `active=false`; al desactivar o forzar clave se revocan sesiones existentes. `requireSuperAdmin`/`requireMinistryManager` y las páginas `/admin/users`, `/admin/ministry-contacts` y `/admin/configs` también verifican `active`.
+
+### Contactos ministeriales (`/admin/ministry-contacts`, SUPER_ADMIN + ADMIN)
+
+1. **Entidad `MinistryContact`** separada de `User`: nombre, ministerio, teléfono/WhatsApp/Telegram ID opcional, idioma, zona horaria, `authorized`, `active` y notas administrativas. Sin contraseña, sesión ni rol de panel.
+2. **APIs** `GET`/`POST /api/admin/ministry-contacts` y `PATCH /api/admin/ministry-contacts/[id]` con `requireMinistryManager`, origen público y auditoría (`MINISTRY_CONTACT_CREATED`/`MINISTRY_CONTACT_UPDATED`). Sin DELETE físico; se desactiva y reactiva.
+3. **Catálogo de ministerios** controlado en UI: Ujieres, Música, Tesorería, Otros + alta de nombre nuevo con confirmación explícita (etiqueta, no rol ni permiso). `TREASURER` no accede.
+4. **Navegación:** enlace "Ministry contacts" (`IconAddressBook`) visible para SUPER_ADMIN y ADMIN.
+
+### Perfil (`/admin/configs`)
+
+1. **Ficha de perfil** con identidad (nombre editable, correo de solo lectura con aviso de flujo verificado futuro, roles, estado 2FA), datos de contacto (teléfono/WhatsApp), canales autorizados (Telegram; sin activar notificaciones) y seguridad (enlace a `/admin/security`). Edición explícita por sección: nada se guarda sin pulsar el botón de guardar de esa sección.
+2. **API `PATCH /api/admin/profile`:** ahora acepta ediciones parciales (solo campos enviados) y registra los campos modificados en auditoría. Correo de acceso no editable.
+
+### Límites respetados
+
+- Matriz de permisos intacta (sin roles dinámicos; USHER sin panel).
+- Sin borrar cuentas físicamente; sin crear SUPER_ADMIN desde UI; sin auto-desactivación.
+- Sin tocar lógica de 2FA, ni integraciones (correo, Telegram, n8n, pagos).
+- Paleta navy/verde/lima, iconos Tabler, claro/oscuro y drawer responsive conservados; CSS propio sin Tailwind.
+
+### Verificación de esta fase
+
+- `npm run prisma:generate`, `npm run lint`, `npm run typecheck`, `npm run build` y `git diff --check` pasaron.
+- Capturas Playwright escritorio 1440 y móvil 390 × claro/oscuro en `C:\ProgramandoconClaude\Reportes\IPEC\admin-operations-phase-1\` (4 archivos), con componentes reales + datos representativos (BD local placeholder). Se corrigieron `min-width` de tabla en móvil y apilado de acciones en escritorio.
+
+### Pendiente en esta fase
+
+- Aplicar la migración en la BD aislada de demo (`npx prisma migrate deploy`) al momento del despliegue.
+- Validación visual autenticada real con datos de la base aislada.
+- Desplegar a demo y fusionar a `nextjs-migration` solo tras aprobación.
+
 ## Próximas fases, en orden
 
-El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La siguiente implementación autorizada es solamente Usuarios, Contactos ministeriales y Perfil.
+El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La Fase 1 (Usuarios, Contactos ministeriales y Perfil) está implementada en rama; la siguiente autorizada tras desplegarla es la Fase 2.
 
 1. **Seguridad y acceso:** probar visualmente 2FA, recuperación de contraseña basada en correo institucional cuando SMTP esté autorizado, revocación de sesiones y política de rate limiting.
 2. **Contenido:** definir catálogo estable de bloques, editor de formato limitado, traducciones requeridas, borrador/publicación y restauración por revisión. No permitir HTML, CSS o JS arbitrario.

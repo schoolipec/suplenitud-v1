@@ -1,7 +1,7 @@
 # Checkpoint de migración Next.js
 
-**Actualizado:** 2026-10-12
-**Rama:** `opencode/admin-panel-responsive` (basada en `nextjs-migration`)
+**Actualizado:** 2026-10-13
+**Rama:** `feature/admin-operations-phase-1` (basada en `nextjs-migration@3690274`)
 **Remoto:** `schoolipec/suplenitud-v1`
 
 ## Verificado
@@ -25,7 +25,7 @@
 4. La Fase A está publicada en demo: Better Auth, identidad/roles/auditoría, `/admin`, bootstrap único y cambio obligatorio de contraseña. El selector de idioma no aparece en administración; las rutas administrativas con prefijo de idioma redirigen a su ruta canónica sin prefijo.
 5. El bloque TOTP de dos factores está publicado en demo con la migración `20261012020000_add_two_factor` y las rutas `/admin/security` y `/admin/two-factor`. La inscripción es voluntaria y no se deben documentar sus secretos ni códigos de recuperación.
 6. Los modelos y rutas de contenido, peticiones, disponibilidad y donaciones permanecen en alcance por fases; las integraciones externas requieren secretos y cuentas institucionales. Consultar `docs/ADMIN-PANEL-CONTINUITY.md` antes de continuar.
-7. La base responsive del panel está en la rama `opencode/admin-panel-responsive` (commits `2a55078` y el commit de cierre de la fase): dashboard `/admin` sin formulario de creación incrustado, `/admin/users` con creación por SUPER_ADMIN (roles ADMIN/TREASURER/USHER; USHER sin acceso al panel; sin opción SUPER_ADMIN en la UI), navegación responsive compartida (`AdminFrame`/`AdminNavigation`) en todas las páginas del panel, validación de Origin por `BETTER_AUTH_URL` en todas las APIs admin mutantes vía `src/lib/request-origin.ts`, y corrección de `overflow-x` (`clip`) que rompía la nav sticky móvil. Permisos por rol granulares: SUPER_ADMIN todo; ADMIN content/prayer/ushers/visits/configs; TREASURER dashboard restringido/donations/configs; USHER sin panel — menú oculto y bloqueo servidor en cada página. Aún no se despliega al VPS.
+7. La base responsive del panel está integrada en `nextjs-migration` (hasta `3690274`, incluye permisos por rol, sign out y rediseño visual). La Fase 1 de operaciones está en la rama `feature/admin-operations-phase-1` (sin desplegar): usuarios con activar/desactivar (`User.active` + revocación de sesiones + hook de sesión), editar nombre/rol, forzar cambio de contraseña y auditoría; contactos ministeriales (`MinistryContact`, migración `20261013100000_add_ministry_contacts_and_user_activation`, ruta `/admin/ministry-contacts` para SUPER_ADMIN/ADMIN, catálogo de ministerios con alta confirmada, sin DELETE físico); perfil `/admin/configs` como ficha con edición explícita por sección; `PATCH /api/admin/profile` con ediciones parciales. Matriz de permisos intacta. Validación local completa y capturas en `C:\ProgramandoconClaude\Reportes\IPEC\admin-operations-phase-1\`. Detalle en `docs/ADMIN-PANEL-CONTINUITY.md`.
 
 ## Reglas de continuidad
 

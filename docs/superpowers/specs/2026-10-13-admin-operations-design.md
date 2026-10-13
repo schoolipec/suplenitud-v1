@@ -1,7 +1,7 @@
 # Panel administrativo: operaciones por fases
 
-**Estado:** aprobado para iniciar la fase 1.  
-**Entorno:** `demo.suplenitud.com` exclusivamente.  
+**Estado:** aprobado para iniciar la fase 1.
+**Entorno:** `demo.suplenitud.com` exclusivamente.
 **Producción:** `suplenitud.com` y `www.suplenitud.com` fuera de alcance.
 
 ## Decisiones confirmadas
