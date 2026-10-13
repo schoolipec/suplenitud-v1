@@ -372,6 +372,7 @@ function UserRow({
   onConfirm,
   onCancelConfirm,
   onRunAction,
+  onRunInvitationAction,
 }: {
   user: ManagedUser;
   expanded: boolean;
@@ -510,8 +511,7 @@ function UserRow({
                   >
                     {user.active ? <IconUserOff size={17} aria-hidden /> : <IconUserCheck size={17} aria-hidden />}
                   </button>
-                )
-                : null}
+                )) : null}
               </>
             ) : (
               <span className="admin-self-badge">You</span>
