@@ -14,6 +14,7 @@ export function Header() {
   const parts=pathname.split("/").filter(Boolean); const locale=localeCodes.has(parts[0] as typeof locales[number]["code"]) ? parts.shift()! : "en";
   const path=`/${parts.join("/")}`||"/", current=locales.find(({code})=>code===locale)??locales[0], labels=navigation[locale as keyof typeof navigation]??navigation.en;
   const isPastors = path === "/pastors" || path === "/pastors/", isAdmin = path === "/admin" || path.startsWith("/admin/");
+  if (isAdmin) return null;
   const homeHref=locale==="en"?"/":`/${locale}/`, sectionHref=(anchor:string)=>`${homeHref}#${anchor}`;
   const select=async(next:string)=>{try {await fetch("/api/locale-preference/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({locale:next})});} finally {router.push(next==="en"?path:`/${next}${path==="/"?"/":path}`);setOpen(false)}};
   const closeMenu=()=>setMenuOpen(false);

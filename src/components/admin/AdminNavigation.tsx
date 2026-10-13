@@ -74,8 +74,9 @@ export function AdminNavigation({roles}: {roles: string[]}) {
 
   async function signOut() {
     setSigningOut(true);
+    setMenuOpen(false);
     await authClient.signOut();
-    router.replace("/admin/sign-in");
+    router.replace("/");
     router.refresh();
   }
 

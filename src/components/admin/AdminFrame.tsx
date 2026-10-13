@@ -1,5 +1,6 @@
 import {ReactNode} from "react";
 import {AdminNavigation} from "@/components/admin/AdminNavigation";
+import {AdminUserChip} from "@/components/admin/AdminUserChip";
 
 export function AdminFrame({roles, eyebrow = "Administration", title, children}: {roles: string[]; eyebrow?: string; title: string; children: ReactNode}) {
   return (
@@ -11,6 +12,7 @@ export function AdminFrame({roles, eyebrow = "Administration", title, children}:
             <p className="admin-eyebrow">{eyebrow}</p>
             <h1>{title}</h1>
           </div>
+          <AdminUserChip />
         </header>
         <div className="admin-workspace-body">{children}</div>
       </section>
