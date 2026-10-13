@@ -12,11 +12,36 @@ export const metadata = {title: "Users | Iglesia Plenitud en Cristo"};
 export default async function UsersPage() {
   const session = await auth.api.getSession({headers: await headers()});
   if (!session?.user) redirect("/admin/sign-in");
-  const user = await prisma.user.findUnique({where: {id: session.user.id}, select: {mustChangePassword: true, roles: {select: {role: true}}}});
-  if (user?.mustChangePassword) redirect("/admin/change-password");
-  const roles = user?.roles.map(({role}) => role) ?? [];
+  const user = await prisma.user.findUnique({
+    where: {id: session.user.id},
+    select: {active: true, mustChangePassword: true, roles: {select: {role: true}}},
+  });
+  if (!user?.active) redirect("/admin/sign-in?error=deactivated");
+  if (user.mustChangePassword) redirect("/admin/change-password");
+  const roles = user.roles.map(({role}) => role);
   if (!canManageUsers(roles)) redirect("/admin?error=unauthorized");
-  const users = await prisma.user.findMany({orderBy: {createdAt: "asc"}, select: {id: true, name: true, email: true, createdAt: true, twoFactorEnabled: true, roles: {select: {role: true}}}});
-  const initialUsers = users.map((item) => ({...item, createdAt: item.createdAt.toISOString(), roles: item.roles.map(({role}) => role)}));
-  return <AdminFrame roles={roles} title="User management"><UserManagement initialUsers={initialUsers}/></AdminFrame>;
+  const users = await prisma.user.findMany({
+    orderBy: {createdAt: "asc"},
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      active: true,
+      twoFactorEnabled: true,
+      roles: {select: {role: true}},
+      sessions: {select: {updatedAt: true}, orderBy: {updatedAt: "desc"}, take: 1},
+    },
+  });
+  const initialUsers = users.map(({sessions, ...item}) => ({
+    ...item,
+    createdAt: item.createdAt.toISOString(),
+    roles: item.roles.map(({role}) => role),
+    lastActivityAt: sessions[0]?.updatedAt.toISOString() ?? null,
+  }));
+  return (
+    <AdminFrame roles={roles} title="User management">
+      <UserManagement initialUsers={initialUsers} currentUserId={session.user.id} />
+    </AdminFrame>
+  );
 }

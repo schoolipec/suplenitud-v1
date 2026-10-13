@@ -32,9 +32,28 @@ export function canViewVisits(roles: readonly ApplicationRole[]) {
   return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.ADMIN);
 }
 
+export function canManageMinistryContacts(roles: readonly ApplicationRole[]) {
+  return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.ADMIN);
+}
+
 export async function requireSuperAdmin(request: Request) {
   const session = await auth.api.getSession({headers: request.headers});
   if (!session?.user) return null;
-  const assignments = await prisma.userRole.findMany({where: {userId: session.user.id}, select: {role: true}});
-  return canManageUsers(assignments.map(({role}) => role)) ? session.user : null;
+  const user = await prisma.user.findUnique({
+    where: {id: session.user.id},
+    select: {active: true, roles: {select: {role: true}}},
+  });
+  if (!user?.active) return null;
+  return canManageUsers(user.roles.map(({role}) => role)) ? session.user : null;
+}
+
+export async function requireMinistryManager(request: Request) {
+  const session = await auth.api.getSession({headers: request.headers});
+  if (!session?.user) return null;
+  const user = await prisma.user.findUnique({
+    where: {id: session.user.id},
+    select: {active: true, roles: {select: {role: true}}},
+  });
+  if (!user?.active) return null;
+  return canManageMinistryContacts(user.roles.map(({role}) => role)) ? session.user : null;
 }

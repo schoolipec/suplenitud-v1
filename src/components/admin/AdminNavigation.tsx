@@ -5,6 +5,7 @@ import {usePathname, useRouter} from "next/navigation";
 import {useEffect, useRef, useState} from "react";
 import {authClient} from "@/lib/auth-client";
 import {
+  IconAddressBook,
   IconArticle,
   IconChartBar,
   IconHeartHandshake,
@@ -32,6 +33,7 @@ export function AdminNavigation({roles}: {roles: string[]}) {
   const items: Item[] = [
     {href: "/admin", label: "Overview", icon: IconLayoutDashboard},
     {href: "/admin/users", label: "Users", icon: IconUsers, visible: isSuperAdmin},
+    {href: "/admin/ministry-contacts", label: "Ministry contacts", icon: IconAddressBook, visible: isSuperOrAdmin},
     {href: "/admin/visits", label: "Visits", icon: IconChartBar, visible: isSuperOrAdmin},
     {href: "/admin/template", label: "Website content", icon: IconArticle, visible: isSuperOrAdmin},
     {href: "/admin/prayer-requests", label: "Prayer requests", icon: IconPray, visible: isSuperOrAdmin},

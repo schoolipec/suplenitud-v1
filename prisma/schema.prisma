@@ -85,6 +85,7 @@ model User {
   phone              String?
   whatsapp           String?
   telegramChatId     String?
+  active             Boolean   @default(true)
   sessions           Session[]
   accounts           Account[]
   roles              UserRole[]
@@ -93,6 +94,25 @@ model User {
 
   @@unique([email])
   @@map("user")
+}
+
+model MinistryContact {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  ministry       String
+  phone          String?
+  whatsapp       String?
+  telegramChatId String?  @map("telegram_chat_id")
+  locale         String   @default("en") @db.VarChar(5)
+  timezone       String   @default("America/Los_Angeles")
+  authorized     Boolean  @default(false)
+  active         Boolean  @default(true)
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([ministry])
+  @@map("ministry_contacts")
 }
 
 model TwoFactor {

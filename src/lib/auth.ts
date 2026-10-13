@@ -13,6 +13,20 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
   },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: {id: session.userId},
+            select: {active: true},
+          });
+          if (!user?.active) return false;
+          return true;
+        },
+      },
+    },
+  },
   plugins: [twoFactor({issuer: "Iglesia Plenitud en Cristo"})],
   user: {
     additionalFields: {
