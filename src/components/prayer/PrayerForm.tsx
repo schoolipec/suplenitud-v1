@@ -1,7 +1,6 @@
 "use client";
 
 import {FormEvent, useMemo, useRef, useState} from "react";
-import {getAvailableChannels} from "@/lib/prayer-validation";
 
 type Locale = "en" | "es" | "pt" | "ko" | "de";
 

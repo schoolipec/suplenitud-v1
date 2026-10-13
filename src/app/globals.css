@@ -255,8 +255,11 @@ body.is-admin { padding-top: 0; }
 .prayer-form .prayer-consent input[type="checkbox"]:checked::before { transform: rotate(-45deg) scale(1); }
 .prayer-form .prayer-consent input[type="checkbox"]:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .prayer-field { display: grid; gap: .45rem; margin-bottom: 1.1rem; }
-.prayer-field > label, .prayer-field > fieldset > legend, .prayer-field legend { font-weight: 700; }
-.prayer-field fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset.prayer-field { border: 0; padding: 0; margin: 0 0 1.1rem; min-width: 0; }
+fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight: 700; }
+.prayer-field > label { font-weight: 700; }
+.prayer-form select { width: 100%; min-height: 2.75rem; padding: .6rem .75rem; border: 1px solid #79a9c4; border-radius: .5rem; background: #092842; color: #fff; font: inherit; }
+.prayer-form select:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .prayer-required { color: var(--lime); font-weight: 800; }
 .prayer-counter { margin: .1rem 0 0; font-size: .82rem; color: var(--muted); text-align: right; }
 .prayer-field-hint { margin: .1rem 0 0; font-size: .85rem; color: var(--muted); }
