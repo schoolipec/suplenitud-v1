@@ -123,6 +123,61 @@ Implementada en `feature/admin-operations-phase-1` según `docs/superpowers/spec
 - Validación visual autenticada real con datos de la base aislada.
 - Desplegar a demo y fusionar a `nextjs-migration` solo tras aprobación.
 
+## Peticiones de oración y contacto pastoral (rama; sin desplegar)
+
+Implementada en `feature/prayer-contact-workflow` según `docs/superpowers/specs/2026-10-13-prayer-contact-workflow-design.md`. Sin desplegar; no crear PR hasta autorización.
+
+### Formulario público (`/api/prayer`)
+
+1. **Dos opciones mutuamente excluyentes:** `PRAYER_ONLY` (solo oración) y `PRAYER_AND_CONTACT` (oración + contacto pastoral).
+2. **Consentimiento separado:** `consentToStore` obligatorio en ambas; `consentToContact` obligatorio solo en `PRAYER_AND_CONTACT`.
+3. **Opción A:** no pide teléfono, WhatsApp, horario ni contacto. Solo texto + consentimiento.
+4. **Opción B:** requiere país, canal (`PHONE`/`WHATSAPP`), teléfono o WhatsApp, zona horaria y franja disponible.
+5. **Países con contacto directo:** `US`, `CA`, `MX` ofrecen `PHONE` + `WHATSAPP`; demás países solo `WHATSAPP`.
+6. **Validación servidor:** `validatePrayerRequest` en `src/lib/prayer-validation.ts` cubre países, canales, consentimiento, teléfono/WhatsApp, zona horaria y franja.
+7. **Localización:** formulario traducido a `en`, `es`, `pt`, `ko`, `de`.
+
+### Disponibilidad de ujieres
+
+1. **Modelo:** `UsherAvailability` con `contactId` vinculado a `MinistryContact`. Migración segura conserva filas legacy.
+2. **Candidatos:** solo contactos `active=true`, `authorized=true` con canal apropiado.
+3. **Cálculo de franjas:** conversión de zona horaria del ujier a la del visitante.
+4. **Sin disponibilidad:** la solicitud se guarda como `PENDING_ASSIGNMENT` sin prometer contacto inmediato.
+
+### Gestión administrativa (`/admin/prayer-requests`)
+
+1. **Cola profesional:** filtros por estado, tipo, país, canal, fecha y disponibilidad; detalle protegido; candidatos sugeridos; asignación manual explícita.
+2. **Estados:** `NEW`, `PENDING_ASSIGNMENT`, `ASSIGNED`, `CONTACTED`, `CLOSED` con transiciones validadas.
+3. **Permisos:** `SUPER_ADMIN` y `ADMIN` gestionan; `TREASURER` y `USHER` no acceden.
+4. **Auditoría:** `PRAYER_REQUEST_CREATED`, `PRAYER_REQUEST_ASSIGNED`, `PRAYER_REQUEST_STATUS_CHANGED`, `PRAYER_REQUEST_EXPORTED`.
+5. **Exportación CSV:** endpoint `GET /api/admin/prayer-requests/export` con filtro por tipo y fecha; limitado a peticiones sin contacto si es el filtro seleccionado.
+6. **Vista imprimible:** ruta `/admin/prayer-requests/print` con markup optimizado para impresión; sin datos de contacto.
+
+### Notificaciones internas
+
+1. **Preferencias por usuario:** `NotificationPreference` con `newPrayerRequest`, `newContactRequest`, `pendingAssignment`, `assignmentMade`.
+2. **Solo panel:** las preferencias controlan avisos internos; no activan Telegram, correo ni WhatsApp.
+3. **UI:** sección "Notification preferences" en `/admin/configs` (Settings).
+
+### Límites respetados
+
+- Matriz de permisos intacta (sin roles dinámicos; USHER sin panel).
+- Sin guardar IP cruda.
+- Sin activar integraciones externas (Telegram, WhatsApp, correo, n8n).
+- Paleta navy/verde/lima, iconos Tabler, claro/oscuro y drawer responsive conservados; CSS propio sin Tailwind.
+
+### Verificación de esta fase
+
+- `npm run prisma:generate`, `npm run lint`, `npm run typecheck`, `npm run build` y `git diff --check` pasaron.
+- Verificación reproducible: `npm run verify:prayer-contact` (`scripts/verify-prayer-contact.mts`) cubre países/canales, consentimiento separado, validación de teléfono/WhatsApp, zona horaria, transiciones de estado y protección de APIs.
+- Pendiente: validación visual autenticada real con datos de la base aislada.
+
+### Pendiente en esta fase
+
+- Aplicar la migración en la BD aislada de demo (`npx prisma migrate deploy`) al momento del despliegue.
+- Validación visual autenticada real con datos de la base aislada.
+- Desplegar a demo y fusionar a `nextjs-migration` solo tras aprobación.
+
 ## Próximas fases, en orden
 
 El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La Fase 1 (Usuarios, Contactos ministeriales y Perfil) está implementada en rama; la siguiente autorizada tras desplegarla es la Fase 2.

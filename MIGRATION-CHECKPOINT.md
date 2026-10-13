@@ -1,7 +1,7 @@
 # Checkpoint de migración Next.js
 
 **Actualizado:** 2026-10-13
-**Rama:** `feature/admin-operations-phase-1` (basada en `nextjs-migration@3690274`)
+**Rama:** `feature/prayer-contact-workflow` (basada en `nextjs-migration@00217f7`)
 **Remoto:** `schoolipec/suplenitud-v1`
 
 ## Verificado
