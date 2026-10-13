@@ -1,64 +1,72 @@
 import {NextResponse} from "next/server";
 import {prisma} from "@/lib/db/client";
-import {isValidTimeZone} from "@/lib/prayer-validation";
+import {isValidCountryCode, isValidContactChannel, isValidTimeZone} from "@/lib/prayer-validation";
+import {buildPublicSlot, isSlotCompatibleWithChannel, type PublicAvailabilitySlot} from "@/lib/prayer-availability";
 
+/**
+ * Public availability lookup. Returns only safe, non-identifying slot data:
+ * the real UsherAvailability UUID plus a label already converted to the
+ * visitor's time zone. Never exposes contact names, phones, channels or ids.
+ */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const timeZone = url.searchParams.get("timeZone");
   const country = url.searchParams.get("country");
+  const channelParam = url.searchParams.get("channel");
 
   if (!timeZone || !isValidTimeZone(timeZone)) {
     return NextResponse.json({error: "invalid_time_zone"}, {status: 400});
   }
 
-  if (!country || !/^[A-Z]{2}$/.test(country)) {
+  if (!country || !isValidCountryCode(country)) {
     return NextResponse.json({error: "invalid_country"}, {status: 400});
   }
 
+  if (!channelParam || !isValidContactChannel(channelParam)) {
+    return NextResponse.json({error: "invalid_contact_channel"}, {status: 400});
+  }
+
   const availability = await prisma.usherAvailability.findMany({
-    where: {active: true},
-    include: {
+    where: {
+      active: true,
       contact: {
-        where: {active: true, authorized: true},
-        select: {id: true, name: true, ministry: true, locale: true, timezone: true, phone: true, whatsapp: true},
+        active: true,
+        authorized: true,
+        ...(channelParam === "PHONE" ? {phone: {not: null}} : {whatsapp: {not: null}}),
       },
     },
-    orderBy: [{contact: {name: "asc"}}, {weekday: "asc"}, {startTime: "asc"}],
+    select: {
+      id: true,
+      weekday: true,
+      startTime: true,
+      endTime: true,
+      active: true,
+      contact: {
+        select: {timezone: true, active: true, authorized: true, phone: true, whatsapp: true},
+      },
+    },
+    orderBy: [{weekday: "asc"}, {startTime: "asc"}],
   });
 
-  const slots = availability
-    .filter((a) => a.contact !== null)
-    .map((a) => {
-      const contact = a.contact!;
-      const now = new Date();
-      const visitorDay = new Intl.DateTimeFormat("en-US", {
-        timeZone,
-        weekday: "short",
-      }).format(now);
-      const dayMap: Record<string, number> = {
-        Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
-      };
+  const slots: PublicAvailabilitySlot[] = [];
+  for (const row of availability) {
+    if (!row.contact) continue;
+    const source = {
+      id: row.id,
+      weekday: row.weekday,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      contactTimezone: row.contact.timezone,
+      active: row.active,
+      contactActive: row.contact.active,
+      contactAuthorized: row.contact.authorized,
+      contactPhone: row.contact.phone,
+      contactWhatsapp: row.contact.whatsapp,
+    };
+    if (!isSlotCompatibleWithChannel(source, channelParam)) continue;
+    const slot = buildPublicSlot(source, timeZone);
+    if (slot) slots.push(slot);
+  }
 
-      const visitorWeekday = dayMap[visitorDay] ?? 0;
-      const contactWeekday = a.weekday;
-
-      const diff = (visitorWeekday - contactWeekday + 7) % 7;
-      const slotDate = new Date(now);
-      slotDate.setDate(slotDate.getDate() + diff);
-
-      const dateStr = slotDate.toISOString().split("T")[0];
-
-      return {
-        id: `${a.id}-${dateStr}`,
-        availabilityId: a.id,
-        contactId: contact.id,
-        contactName: contact.name,
-        date: dateStr,
-        startTime: a.startTime,
-        endTime: a.endTime,
-        timezone: contact.timezone,
-      };
-    });
-
-  return NextResponse.json({slots});
+  return NextResponse.json({slots, timeZone});
 }

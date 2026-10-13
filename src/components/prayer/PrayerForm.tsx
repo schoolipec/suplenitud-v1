@@ -268,9 +268,10 @@ const TIME_ZONES = [
 
 type AvailabilitySlot = {
   id: string;
+  label: string;
+  date: string;
   startTime: string;
   endTime: string;
-  contactName: string;
 };
 
 export function PrayerForm({locale = "en"}: {locale?: Locale}) {
@@ -294,14 +295,14 @@ export function PrayerForm({locale = "en"}: {locale?: Locale}) {
 
   const channels = country ? getAvailableChannels(country) : ["WHATSAPP"];
 
-  async function loadAvailabilitySlots() {
+  async function loadAvailabilitySlots(channel: "PHONE" | "WHATSAPP") {
     if (!timeZone || !country) {
       setAvailabilitySlots([]);
       return;
     }
     setLoadingSlots(true);
     try {
-      const response = await fetch(`/api/prayer/availability?timeZone=${encodeURIComponent(timeZone)}&country=${encodeURIComponent(country)}`);
+      const response = await fetch(`/api/prayer/availability?timeZone=${encodeURIComponent(timeZone)}&country=${encodeURIComponent(country)}&channel=${encodeURIComponent(channel)}`);
       if (response.ok) {
         const data = await response.json();
         setAvailabilitySlots(data.slots || []);
@@ -448,7 +449,10 @@ export function PrayerForm({locale = "en"}: {locale?: Locale}) {
               value={country}
               onChange={(e) => {
                 setCountry(e.target.value);
-                setContactChannel(getAvailableChannels(e.target.value)[0]);
+                const nextChannel = getAvailableChannels(e.target.value)[0];
+                setContactChannel(nextChannel);
+                setAvailabilitySlotId("");
+                if (timeZone) void loadAvailabilitySlots(nextChannel);
               }}
               required
             >
@@ -466,7 +470,12 @@ export function PrayerForm({locale = "en"}: {locale?: Locale}) {
                 <select
                   name="contactChannel"
                   value={contactChannel}
-                  onChange={(e) => setContactChannel(e.target.value as "PHONE" | "WHATSAPP")}
+                  onChange={(e) => {
+                    const nextChannel = e.target.value as "PHONE" | "WHATSAPP";
+                    setContactChannel(nextChannel);
+                    setAvailabilitySlotId("");
+                    if (timeZone) void loadAvailabilitySlots(nextChannel);
+                  }}
                   required
                 >
                   {channels.map((ch) => (
@@ -513,7 +522,7 @@ export function PrayerForm({locale = "en"}: {locale?: Locale}) {
                   onChange={(e) => {
                     setTimeZone(e.target.value);
                     setAvailabilitySlotId("");
-                    loadAvailabilitySlots();
+                    if (e.target.value && country) void loadAvailabilitySlots(contactChannel);
                   }}
                   required
                 >
@@ -538,7 +547,7 @@ export function PrayerForm({locale = "en"}: {locale?: Locale}) {
                       <option value="">{t.availabilityPlaceholder}</option>
                       {availabilitySlots.map((slot) => (
                         <option key={slot.id} value={slot.id}>
-                          {slot.startTime} - {slot.endTime} ({slot.contactName})
+                          {slot.label}
                         </option>
                       ))}
                     </select>
