@@ -91,6 +91,7 @@ model User {
   roles              UserRole[]
   auditEvents        AuditLog[] @relation("AuditActor")
   twoFactor          TwoFactor?
+  notificationPreference NotificationPreference?
 
   @@unique([email])
   @@map("user")
@@ -110,6 +111,8 @@ model MinistryContact {
   notes          String?
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  assignments    PrayerAssignment[]
+  availability    UsherAvailability[]
 
   @@index([ministry])
   @@map("ministry_contacts")
@@ -175,8 +178,14 @@ enum ContentStatus {
   PUBLISHED
 }
 
+enum PrayerRequestType {
+  PRAYER_ONLY
+  PRAYER_AND_CONTACT
+}
+
 enum PrayerRequestStatus {
   NEW
+  PENDING_ASSIGNMENT
   ASSIGNED
   CONTACTED
   CLOSED
@@ -185,42 +194,71 @@ enum PrayerRequestStatus {
 model PrayerRequest {
   id                String              @id @default(uuid()) @db.Uuid
   name              String
-  phoneOrWhatsApp   String              @map("phone_or_whatsapp")
+  message           String              @db.Text
   email             String?
-  preferredContact  String              @map("preferred_contact")
-  consentedAt       DateTime            @map("consented_at") @db.Timestamptz(6)
+  requestType       PrayerRequestType   @default(PRAYER_ONLY) @map("request_type")
+  country           String?             @db.VarChar(2)
+  contactChannel    String?             @map("contact_channel")
+  phone             String?
+  whatsapp          String?
+  timeZone          String?             @map("time_zone") @db.VarChar(64)
+  availabilitySlotId String?            @map("availability_slot_id") @db.Uuid
+  consentToStore    Boolean             @default(false) @map("consent_to_store")
+  consentToContact  Boolean             @default(false) @map("consent_to_contact")
   status            PrayerRequestStatus @default(NEW)
   createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
   assignments       PrayerAssignment[]
 
   @@index([status, createdAt])
+  @@index([requestType, createdAt])
+  @@index([country])
   @@map("prayer_requests")
 }
 
 model PrayerAssignment {
   id              String        @id @default(uuid()) @db.Uuid
   requestId       String        @map("request_id") @db.Uuid
+  contactId       String?       @map("contact_id") @db.Uuid
   usherName       String        @map("usher_name")
   assignedById    String        @map("assigned_by_id")
   assignedAt      DateTime      @default(now()) @map("assigned_at") @db.Timestamptz(6)
   request         PrayerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  contact         MinistryContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   @@index([requestId])
+  @@index([contactId])
   @@map("prayer_assignments")
 }
 
 model UsherAvailability {
   id        String   @id @default(uuid()) @db.Uuid
+  contactId String?  @map("contact_id") @db.Uuid
   usherName String   @map("usher_name")
   timezone  String
   weekday   Int
   startTime String   @map("start_time")
   endTime   String   @map("end_time")
   active    Boolean  @default(true)
+  contact   MinistryContact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@index([usherName, weekday])
+  @@index([contactId, weekday])
   @@map("usher_availability")
+}
+
+model NotificationPreference {
+  id                   String   @id
+  userId               String   @unique @map("user_id")
+  newPrayerRequest     Boolean  @default(true) @map("new_prayer_request")
+  newContactRequest    Boolean  @default(true) @map("new_contact_request")
+  pendingAssignment    Boolean  @default(true) @map("pending_assignment")
+  assignmentMade       Boolean  @default(true) @map("assignment_made")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }
 
 enum DonationStatus {
