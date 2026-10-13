@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "admin:bootstrap": "tsx scripts/bootstrap-superadmin.mts",
     "verify:admin-users": "tsx scripts/verify-admin-users-api.mts",
-    "verify:prayer-contact": "tsx scripts/verify-prayer-contact.mts"
+    "verify:prayer-contact": "tsx scripts/verify-prayer-contact.mts",
+    "verify:invitations": "tsx scripts/verify-invitations.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

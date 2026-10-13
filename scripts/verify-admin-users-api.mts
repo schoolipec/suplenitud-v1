@@ -35,10 +35,14 @@ assert.match(usersRoute, /export async function POST/);
 assert.match(usersRoute, /hasValidPublicOrigin/);
 assert.match(usersRoute, /requireSuperAdmin/);
 assert.match(usersRoute, /email_already_exists/);
-assert.match(usersRoute, /signUpEmail/);
 assert.match(usersRoute, /USER_CREATED/);
+assert.match(usersRoute, /INVITATION_CREATED/);
+assert.match(usersRoute, /tokenHash/);
+assert.match(usersRoute, /emailSent/);
 assert.match(usersRoute, /active: true/);
 assert.match(usersRoute, /mustChangePassword: true/);
+assert.ok(!usersRoute.includes("temporaryPassword"));
+assert.ok(!usersRoute.includes("signUpEmail"));
 assert.ok(!usersRoute.includes('value="SUPER_ADMIN"'));
 
 assert.match(userIdRoute, /shouldRejectSuperAdminRoleChange/);
@@ -51,6 +55,6 @@ assert.match(userIdRoute, /hasValidPublicOrigin/);
 assert.match(userIdRoute, /requireSuperAdmin/);
 
 console.log("verify-admin-users-api: all checks passed");
-console.log("  - POST restored with origin, super-admin, duplicate email, Better Auth, role, audit, active, mustChangePassword");
+console.log("  - POST creates credential-less users with single-use invitation, origin, super-admin, duplicate email, role, audit, active, mustChangePassword, honest emailSent");
 console.log("  - SUPER_ADMIN role change rejected server-side");
 console.log("  - Self-deactivation rejected server-side");

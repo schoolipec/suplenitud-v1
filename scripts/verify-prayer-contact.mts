@@ -88,8 +88,8 @@ assert.equal(isValidMessage("This is a valid prayer request message."), true);
 assert.equal(isValidMessage("Short"), false);
 assert.equal(isValidMessage(""), false);
 assert.equal(isValidMessage(null), false);
-assert.equal(isValidMessage("a".repeat(2001)), false);
-assert.equal(isValidMessage("a".repeat(2000)), true);
+assert.equal(isValidMessage("a".repeat(1001)), false);
+assert.equal(isValidMessage("a".repeat(1000)), true);
 
 // Email validation
 assert.equal(isValidEmail(""), true);
@@ -247,7 +247,25 @@ const wrongChannel = validatePrayerRequest({
   availabilitySlotId: "550e8400-e29b-41d4-a716-446655440000",
 });
 assert.equal(wrongChannel.valid, false);
-assert.ok(wrongChannel.errors.includes("invalid_contact_channel"));
+assert.ok(wrongChannel.errors.includes("invalid_country"));
+
+// Puerto Rico joins the direct-call countries
+assert.equal(isDirectContactCountry("PR"), true);
+assert.deepEqual(getAvailableChannels("PR"), ["PHONE", "WHATSAPP"]);
+
+// WhatsApp needs no country at all
+const whatsappNoCountry = validatePrayerRequest({
+  requestType: "PRAYER_AND_CONTACT",
+  message: "Please pray for my family.",
+  name: "John Doe",
+  consentToStore: true,
+  consentToContact: true,
+  contactChannel: "WHATSAPP",
+  whatsapp: "+1234567890",
+  timeZone: "America/Los_Angeles",
+});
+assert.equal(whatsappNoCountry.valid, true);
+assert.deepEqual(whatsappNoCountry.errors, []);
 
 // Invalid: missing phone for PHONE channel
 const missingPhone = validatePrayerRequest({
@@ -483,7 +501,11 @@ assert.match(prayerForm, /PRAYER_ONLY/);
 assert.match(prayerForm, /PRAYER_AND_CONTACT/);
 assert.match(prayerForm, /consentStore/);
 assert.match(prayerForm, /consentContact/);
-assert.match(prayerForm, /getAvailableChannels/);
+assert.match(prayerForm, /prayer-type-card/);
+assert.match(prayerForm, /prayer-combobox/);
+assert.match(prayerForm, /PRAYER_MESSAGE_MAX_LENGTH/);
+assert.match(prayerForm, /suggestedCountry/);
+assert.match(prayerForm, /remaining/);
 
 const queuePath = join(root, "src/components/admin/PrayerRequestsQueue.tsx");
 const queue = readFileSync(queuePath, "utf8");
