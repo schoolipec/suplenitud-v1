@@ -47,6 +47,19 @@ La base responsive del panel administrativo quedó implementada en la rama `open
 - Desplegar a demo (fuera del alcance de esta rama; requiere procedimiento del VPS descrito abajo).
 - La validación visual autenticada completa requiere una BD local utilizable (las credenciales `.env` locales son placeholders); la verificación se hizo con markup representativo + CSS compilado real y con la página real de sign-in.
 
+## Rama opencode/admin-dashboard-visual-refresh (rediseño visual; sin desplegar)
+
+Rediseño exclusivamente visual del panel sobre `origin/nextjs-migration@0af8e6b`, en la rama `opencode/admin-dashboard-visual-refresh`. Lógica, permisos, rutas, 2FA, APIs e integraciones intactos:
+
+1. **Sidebar fija (escritorio):** `AdminNavigation` como columna sticky bajo el header público (78 px), con marca, enlaces + iconos Tabler (`@tabler/icons-react`, única familia) y Sign out anclado abajo. Estado activo con acento lima.
+2. **Drawer móvil (390 px):** se reemplaza la franja horizontal por barra móvil sticky (botón de menú + marca + salir) y panel deslizable con overlay. Accesible: `aria-expanded`/`aria-controls`, Escape cierra y devuelve el foco, foco inicial al primer enlace, cierre al navegar. No solapa el header público fijo.
+3. **Topbar contextual:** `AdminFrame` envuelve eyebrow + título en `.admin-topbar` sticky bajo el header; contenido en `.admin-workspace-body`.
+4. **Tarjetas y tablas:** iconos en tarjetas del dashboard y visits; grid `auto-fit`; estados vacíos con `.admin-empty`; hover sutil en filas de tabla.
+5. **Paleta y temas:** variables existentes navy/verde/lima (sin púrpura ni gradientes nuevos); dark mode automático vía `[data-theme="dark"]`; contraste AA (números de tarjeta usan `--ink` para legibilidad en oscuro); `:focus-visible` con anillo lima/verde.
+6. **Validación:** lint, typecheck, build y `git diff --check` pasaron. Capturas escritorio/390 px × claro/oscuro (+ drawer abierto) en `C:\ProgramandoconClaude\Reportes\IPEC\admin-visual-refresh\` (18 archivos), generadas con componentes reales + markup representativo (BD local placeholder).
+
+Pendiente: desplegar a demo tras aprobación; validación autenticada real con BD utilizable.
+
 ## 2FA TOTP (publicado en demo; sin cambios en esta fase)
 
 TOTP nativo de Better Auth está publicado en demo:
