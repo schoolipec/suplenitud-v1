@@ -171,6 +171,8 @@ assert.match(migration, /ADD COLUMN "locale"/);
 assert.match(migration, /ADD COLUMN "action"/);
 assert.match(migration, /home\.hero/);
 assert.match(migration, /ON CONFLICT \("key"\) DO NOTHING/);
+assert.match(migration, /"created_at", "updated_at"/);
+assert.match(migration, /NOW\(\), NOW\(\)/);
 // Split migration: rename preserves data, published backfilled only for live blocks
 const splitMigration = readFileSync(join(root, "prisma/migrations/20261016010000_content_draft_published_split/migration.sql"), "utf8");
 assert.match(splitMigration, /RENAME COLUMN "content" TO "draft"/);
