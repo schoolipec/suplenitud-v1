@@ -251,9 +251,9 @@ Integrada en `nextjs-migration` mediante `af96022` y publicada únicamente en `h
 - Capturas del dashboard con datos representativos en 1440 y 390: `C:\ProgramandoconClaude\Reportes\IPEC\public-visit-analytics\` (2 archivos). Límite preciso: la página real exige sesión; las capturas usan el mismo componente `VisitsDashboard` con agregados de muestra servido por una ruta temporal pública (eliminada antes de commitear, nunca versionada). El shell público visible en ellas es artefacto de esa ruta temporal; en `/admin/visits` el shell admin oculta header/footer públicos.
 - Pendiente: validación visual autenticada con datos reales y base GeoLite2 montada en el entorno.
 
-## Gestión editorial de contenido (rama; sin desplegar)
+## Gestión editorial de contenido (publicada solo en demo)
 
-Implementada en `feature/content-editor-workflow` (basada en `origin/nextjs-migration@a46aebf`). Sin desplegar; no crear PR hasta autorización. Panel en inglés; sin cambios de roles ni permisos nuevos (SUPER_ADMIN y ADMIN gestionan vía `requireMinistryManager`, el helper ya existente).
+Integrada en `nextjs-migration` mediante `3c7b60e` y publicada únicamente en `https://demo.suplenitud.com/`. Las migraciones `20261016000000_content_editor_workflow` y `20261016010000_content_draft_published_split` están aplicadas en la base aislada; producción no fue modificada. Panel en inglés; sin cambios de roles ni permisos nuevos (SUPER_ADMIN y ADMIN gestionan vía `requireMinistryManager`, el helper ya existente).
 
 ### Catálogo y documento seguro
 

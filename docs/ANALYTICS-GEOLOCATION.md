@@ -1,6 +1,6 @@
 # Analítica pública privada y geolocalización opcional
 
-**Alcance:** solo visitas públicas en `/admin/visits`. Sin despliegue hasta autorización.
+**Alcance:** solo visitas públicas en `/admin/visits`. Publicada únicamente en demo.
 
 ## Qué se mide
 
@@ -25,6 +25,10 @@
 
 - `GEO_TRUST_PROXY_HEADERS=true` solo detrás de Traefik controlado. En cualquier otro caso un cliente podría falsificar `X-Forwarded-For`.
 - Solo se lee la primera entrada de `X-Forwarded-For` y solo si es un literal IP válido.
+
+## Nota operativa de la base demo
+
+- La tabla heredada `analytics_events` pertenecía al rol de n8n. Para que la migración de analítica pudiera ejecutar su DDL en la base aislada, su propiedad se transfirió una sola vez a `suplenitud_app`. No se modificó ninguna tabla ni rol de producción.
 
 ## Retención
 
