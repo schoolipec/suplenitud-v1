@@ -1,8 +1,9 @@
 import {NextResponse} from "next/server";
 import {prisma} from "@/lib/db/client";
-import {getPaymentsStatus, readPaymentsEnv} from "@/lib/payments/config";
+import {getPaymentsStatus, isSquareConfigured, readPaymentsEnv} from "@/lib/payments/config";
 import {
   canTransitionDonation,
+  isUniqueViolation,
   squarePaymentStatus,
   verifySquareSignature,
   webhookEventKey,
@@ -16,21 +17,31 @@ type SquarePayload = {
 };
 
 /**
- * Square webhook receiver. The HMAC signature is verified against the raw
- * body before anything is persisted; invalid signatures are rejected without
- * writes. Verified events are ledgered idempotently and only valid
- * transitions are applied. COMPLETED is only ever written here.
+ * Square webhook receiver. Rejects 503 before verifying or writing anything
+ * unless the full real configuration exists. The HMAC signature covers the
+ * exact concatenation of the configured notification URL plus the raw body
+ * and is compared in constant time. Concurrent duplicate deliveries race on
+ * the UNIQUE(provider, external_id) ledger: the loser answers as a duplicate
+ * (200, never 500) without re-applying state or audit. COMPLETED is only
+ * ever written here.
  */
 export async function POST(request: Request) {
   const status = getPaymentsStatus();
   const {secrets} = readPaymentsEnv();
-  if (!status.enabled || !secrets.squareWebhookSignatureKey) {
+  if (!status.enabled || !isSquareConfigured(secrets)) {
     return NextResponse.json({error: "payments_disabled"}, {status: 503});
   }
 
   const rawBody = await request.text().catch(() => "");
   const signature = request.headers.get("x-square-hmacsha256-signature") ?? "";
-  if (!verifySquareSignature({payload: rawBody, signature, signatureKey: secrets.squareWebhookSignatureKey})) {
+  if (
+    !verifySquareSignature({
+      notificationUrl: secrets.squareWebhookNotificationUrl,
+      payload: rawBody,
+      signature,
+      signatureKey: secrets.squareWebhookSignatureKey,
+    })
+  ) {
     return NextResponse.json({error: "invalid_signature"}, {status: 401});
   }
 
@@ -48,30 +59,24 @@ export async function POST(request: Request) {
     return NextResponse.json({error: "invalid_payload"}, {status: 400});
   }
 
-  const existing = await prisma.donationWebhookEvent.findUnique({
-    where: {provider_externalId: {provider: "SQUARE", externalId: eventId}},
-  });
-  if (existing?.processed) {
-    return NextResponse.json({duplicate: true});
-  }
-
   const target: DonationStatus | null = squarePaymentStatus(paymentStatus);
   const donation = await prisma.donation.findUnique({where: {externalReference: paymentId}});
 
-  const event = existing
-    ? await prisma.donationWebhookEvent.update({
-        where: {id: existing.id},
-        data: {verified: true, eventType: paymentStatus, donationId: donation?.id ?? null},
-      })
-    : await prisma.donationWebhookEvent.create({
-        data: {
-          provider: "SQUARE",
-          externalId: eventId,
-          eventType: paymentStatus,
-          verified: true,
-          donationId: donation?.id ?? null,
-        },
-      });
+  let event;
+  try {
+    event = await prisma.donationWebhookEvent.create({
+      data: {
+        provider: "SQUARE",
+        externalId: eventId,
+        eventType: paymentStatus,
+        verified: true,
+        donationId: donation?.id ?? null,
+      },
+    });
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    return NextResponse.json({duplicate: true});
+  }
 
   let applied: DonationStatus | null = null;
   if (donation && target && canTransitionDonation(donation.status, target)) {

@@ -20,10 +20,29 @@ export type PaymentsSecrets = {
   squareLocationId: string;
   squareAccessToken: string;
   squareWebhookSignatureKey: string;
+  squareWebhookNotificationUrl: string;
 };
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+const PLACEHOLDER_MARKERS = ["changeme", "example", "replace", "placeholder"];
+
+/**
+ * Placeholders are never credentials: empty values, CHANGE_ME and anything
+ * containing example/replace/placeholder (any case) count as missing. This
+ * keeps template values from ever flipping a provider to ready.
+ */
+export function isMissingSecret(value: unknown): boolean {
+  if (typeof value !== "string") return true;
+  const normalized = value.trim().toLowerCase().replace(/[^a-z]/g, "");
+  if (normalized.length === 0) return true;
+  return PLACEHOLDER_MARKERS.some((marker) => normalized.includes(marker));
+}
+
+function present(value: string): boolean {
+  return !isMissingSecret(value);
 }
 
 /** Server-only full configuration. Never serialize or return this to the client. */
@@ -43,22 +62,42 @@ export function readPaymentsEnv(env: NodeJS.ProcessEnv = process.env): {
       squareLocationId: text(env.SQUARE_LOCATION_ID),
       squareAccessToken: text(env.SQUARE_ACCESS_TOKEN ?? ""),
       squareWebhookSignatureKey: text(env.SQUARE_WEBHOOK_SIGNATURE_KEY ?? ""),
+      squareWebhookNotificationUrl: text(env.SQUARE_WEBHOOK_NOTIFICATION_URL ?? ""),
     },
   };
 }
 
 function paypalReadiness(enabled: boolean, mode: PaymentsMode, secrets: PaymentsSecrets): ProviderReadiness {
   if (!enabled) return "disabled";
-  if (!secrets.paypalClientId || !secrets.paypalClientSecret || !secrets.paypalWebhookId) return "missing_credentials";
+  if (!present(secrets.paypalClientId) || !present(secrets.paypalClientSecret) || !present(secrets.paypalWebhookId)) {
+    return "missing_credentials";
+  }
   return mode === "live" ? "live_ready" : "sandbox_ready";
 }
 
 function squareReadiness(enabled: boolean, mode: PaymentsMode, secrets: PaymentsSecrets): ProviderReadiness {
   if (!enabled) return "disabled";
-  if (!secrets.squareApplicationId || !secrets.squareLocationId || !secrets.squareAccessToken || !secrets.squareWebhookSignatureKey) {
+  if (
+    !present(secrets.squareApplicationId) ||
+    !present(secrets.squareLocationId) ||
+    !present(secrets.squareAccessToken) ||
+    !present(secrets.squareWebhookSignatureKey) ||
+    !present(secrets.squareWebhookNotificationUrl)
+  ) {
     return "missing_credentials";
   }
   return mode === "live" ? "live_ready" : "sandbox_ready";
+}
+
+/** Full real configuration gate for the Square webhook path (never derived from request headers). */
+export function isSquareConfigured(secrets: PaymentsSecrets): boolean {
+  return (
+    present(secrets.squareApplicationId) &&
+    present(secrets.squareLocationId) &&
+    present(secrets.squareAccessToken) &&
+    present(secrets.squareWebhookSignatureKey) &&
+    present(secrets.squareWebhookNotificationUrl)
+  );
 }
 
 /**

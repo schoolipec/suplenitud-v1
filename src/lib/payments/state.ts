@@ -1,4 +1,5 @@
 import {createHmac, timingSafeEqual} from "node:crypto";
+import {isMissingSecret} from "@/lib/payments/config";
 
 export const DONATION_STATUSES = [
   "PENDING",
@@ -60,16 +61,23 @@ function toBuffer(value: string): Buffer {
 }
 
 /**
- * Verify a Square webhook signature (HMAC-SHA256 over the raw payload with the
- * webhook signature key, base64). Pure and fully testable with fixtures.
+ * Verify a Square webhook signature: HMAC-SHA256 over the exact concatenation
+ * of notificationUrl + rawBody with the webhook signature key (base64),
+ * compared in constant time. The URL always comes from server configuration,
+ * never from request headers. Pure and fully testable with fixtures.
  */
-export function verifySquareSignature(input: {payload: string; signature: string; signatureKey: string}): boolean {
-  if (!input.payload || !input.signature || !input.signatureKey) return false;
+export function verifySquareSignature(input: {
+  notificationUrl: string;
+  payload: string;
+  signature: string;
+  signatureKey: string;
+}): boolean {
+  if (!input.notificationUrl || !input.payload || !input.signature || !input.signatureKey) return false;
   let expected: Buffer;
   let actual: Buffer;
   try {
     expected = Buffer.from(
-      createHmac("sha256", input.signatureKey).update(input.payload, "utf8").digest("base64"),
+      createHmac("sha256", input.signatureKey).update(`${input.notificationUrl}${input.payload}`, "utf8").digest("base64"),
       "utf8",
     );
     actual = toBuffer(input.signature);
@@ -86,5 +94,14 @@ export function verifySquareSignature(input: {payload: string; signature: string
  * design, so the handler must reject the event. Never trust it otherwise.
  */
 export function canVerifyPaypalWebhook(clientId: string, clientSecret: string, webhookId: string): boolean {
-  return clientId.length > 0 && clientSecret.length > 0 && webhookId.length > 0;
+  return !isMissingSecret(clientId) && !isMissingSecret(clientSecret) && !isMissingSecret(webhookId);
+}
+
+/** True for Prisma unique-constraint violations (P2002): the concurrent-duplicate path. */
+export function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as {code?: unknown}).code === "P2002"
+  );
 }
