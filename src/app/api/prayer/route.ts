@@ -3,8 +3,12 @@ import {prisma} from "@/lib/db/client";
 import {validatePrayerRequest} from "@/lib/prayer-validation";
 import {isUuid, validateAvailabilitySlotForChannel} from "@/lib/prayer-availability";
 import {notifyAdmins} from "@/lib/prayer-notifications";
+import {publicPrayerRequestsEnabled} from "@/lib/public-features";
 
 export async function POST(request: Request) {
+  if (!publicPrayerRequestsEnabled) {
+    return NextResponse.json({error: "not_found"}, {status: 404});
+  }
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   if (!body) {
     return NextResponse.json({error: "invalid_request"}, {status: 400});

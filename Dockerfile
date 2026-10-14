@@ -5,6 +5,8 @@ RUN npm ci
 
 FROM node:26-alpine AS builder
 WORKDIR /app
+ARG PRAYER_REQUESTS_PUBLIC_ENABLED=false
+ENV PRAYER_REQUESTS_PUBLIC_ENABLED=$PRAYER_REQUESTS_PUBLIC_ENABLED
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN npm run prisma:generate

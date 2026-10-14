@@ -3,6 +3,8 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-false}
     image: suplenitud-demo-nextjs:local
     restart: unless-stopped
     environment:
@@ -13,6 +15,7 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       NEXT_PUBLIC_SITE_URL: https://demo.suplenitud.com
       GEO_TRUST_PROXY_HEADERS: ${GEO_TRUST_PROXY_HEADERS:-false}
+      PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-false}
     networks:
       n8n-internal:
         aliases:

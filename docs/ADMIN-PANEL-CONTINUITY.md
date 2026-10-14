@@ -274,6 +274,12 @@ Integrada en `nextjs-migration` mediante `3c7b60e` y publicada únicamente en `h
 - Capturas del editor con datos representativos en 1440 y 390, claro y oscuro: `C:\ProgramandoconClaude\Reportes\IPEC\content-editor-workflow\` (4 archivos). Límite preciso: la página real exige sesión; las capturas usan el mismo componente `ContentManager` servido por una ruta temporal pública (eliminada antes de commitear, nunca versionada). El header/footer públicos visibles en ellas son artefacto de esa ruta; en `/admin/content` el shell admin los oculta.
 - Pendiente: validación visual autenticada con datos reales; conectar el contenido publicado a las páginas públicas (fase separada: hoy el sitio usa textos estáticos y el editor gestiona el repositorio editorial).
 
+## Pausa temporal de solicitudes públicas de oración
+
+- El ingreso público está apagado mediante `PRAYER_REQUESTS_PUBLIC_ENABLED=false`: Home no muestra CTA ni formulario, y `/api/prayer` y `/api/prayer/availability` responden `404` antes de leer o guardar datos.
+- Para reactivarlo se requiere aprobación del nuevo flujo KISS, cambiar esa variable a `true` en el entorno de demo y reconstruir el contenedor. Panel, datos existentes, n8n y APIs administrativas no cambian.
+- Diseño aprobado: `docs/superpowers/specs/2026-10-14-public-prayer-pause-design.md`.
+
 ## Próximas fases, en orden
 
 El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La Fase 1 (Usuarios, Contactos ministeriales y Perfil) está implementada en rama; la siguiente autorizada tras desplegarla es la Fase 2.

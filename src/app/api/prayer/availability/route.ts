@@ -2,6 +2,7 @@ import {NextResponse} from "next/server";
 import {prisma} from "@/lib/db/client";
 import {isValidCountryCode, isValidContactChannel, isValidTimeZone} from "@/lib/prayer-validation";
 import {buildPublicSlot, isSlotCompatibleWithChannel, type PublicAvailabilitySlot} from "@/lib/prayer-availability";
+import {publicPrayerRequestsEnabled} from "@/lib/public-features";
 
 /**
  * Public availability lookup. Returns only safe, non-identifying slot data:
@@ -9,6 +10,9 @@ import {buildPublicSlot, isSlotCompatibleWithChannel, type PublicAvailabilitySlo
  * visitor's time zone. Never exposes contact names, phones, channels or ids.
  */
 export async function GET(request: Request) {
+  if (!publicPrayerRequestsEnabled) {
+    return NextResponse.json({error: "not_found"}, {status: 404});
+  }
   const url = new URL(request.url);
   const timeZone = url.searchParams.get("timeZone");
   const country = url.searchParams.get("country");

@@ -381,6 +381,12 @@ assert.equal(isPrayerNotificationType(null), false);
 // Check API routes exist
 const prayerRoutePath = join(root, "src/app/api/prayer/route.ts");
 const prayerRoute = readFileSync(prayerRoutePath, "utf8");
+const publicFeatures = readFileSync(join(root, "src/lib/public-features.ts"), "utf8");
+const homePage = readFileSync(join(root, "src/app/page.tsx"), "utf8");
+assert.match(publicFeatures, /PRAYER_REQUESTS_PUBLIC_ENABLED/);
+assert.match(prayerRoute, /publicPrayerRequestsEnabled/);
+assert.ok(prayerRoute.indexOf("publicPrayerRequestsEnabled") < prayerRoute.indexOf("request.json"));
+assert.match(homePage, /publicPrayerRequestsEnabled/);
 assert.match(prayerRoute, /validatePrayerRequest/);
 assert.match(prayerRoute, /PRAYER_ONLY/);
 assert.match(prayerRoute, /PRAYER_AND_CONTACT/);
@@ -417,6 +423,8 @@ assert.match(notificationRoute, /notificationPreference/);
 // Public availability endpoint: no personal data, real UUID, channel filter, real conversion
 const publicAvailabilityPath = join(root, "src/app/api/prayer/availability/route.ts");
 const publicAvailability = readFileSync(publicAvailabilityPath, "utf8");
+assert.match(publicAvailability, /publicPrayerRequestsEnabled/);
+assert.ok(publicAvailability.indexOf("publicPrayerRequestsEnabled") < publicAvailability.indexOf("new URL"));
 assert.match(publicAvailability, /buildPublicSlot/);
 assert.match(publicAvailability, /isSlotCompatibleWithChannel/);
 assert.match(publicAvailability, /invalid_contact_channel/);
