@@ -12,7 +12,9 @@ SET "is_public" = false
 WHERE path = '/admin' OR path LIKE '/admin/%'
    OR path ~ '^/(en|es|pt|ko|de)/admin(/|$)'
    OR path = '/api' OR path LIKE '/api/%'
-   OR path = '/invite' OR path LIKE '/invite/%';
+   OR path ~ '^/(en|es|pt|ko|de)/api(/|$)'
+   OR path = '/invite' OR path LIKE '/invite/%'
+   OR path ~ '^/(en|es|pt|ko|de)/invite(/|$)';
 
 CREATE INDEX "analytics_events_is_public_occurred_at_idx"
   ON "analytics_events"("is_public", "occurred_at");

@@ -29,11 +29,17 @@ assert.equal(isPublicPath("/en/admin"), false);
 assert.equal(isPublicPath("/api"), false);
 assert.equal(isPublicPath("/api/analytics"), false);
 assert.equal(isPublicPath("/api/prayer"), false);
+assert.equal(isPublicPath("/es/api/analytics"), false);
+assert.equal(isPublicPath("/pt/api/prayer"), false);
 assert.equal(isPublicPath("/invite"), false);
 assert.equal(isPublicPath("/invite/abc"), false);
+assert.equal(isPublicPath("/pt/invite/token"), false);
+assert.equal(isPublicPath("/ko/invite/abc"), false);
 assert.equal(isPublicPath(""), false);
 assert.equal(isPublicPath(null), false);
 assert.equal(isPublicPath("/administrator"), true);
+assert.equal(isPublicPath("/es/apiary"), true);
+assert.equal(isPublicPath("/pt/invited-guests"), true);
 
 // Known bots excluded, real browsers kept
 assert.equal(isBotUserAgent("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"), true);
@@ -113,6 +119,13 @@ assert.match(migration, /\/admin/);
 assert.match(migration, /\/api\//);
 assert.match(migration, /\/invite/);
 assert.match(migration, /en\|es\|pt\|ko\|de/);
+// Localized coverage segments the first component after the locale for each area
+assert.match(migration, /\^\/\(en\|es\|pt\|ko\|de\)\/admin\(\/\|\$\)/);
+assert.match(migration, /\^\/\(en\|es\|pt\|ko\|de\)\/api\(\/\|\$\)/);
+assert.match(migration, /\^\/\(en\|es\|pt\|ko\|de\)\/invite\(\/\|\$\)/);
+// Similar public routes stay untouched: the segment must end or continue with /
+assert.ok(!migration.includes("/apiary"));
+assert.ok(!migration.includes("/administrator"));
 assert.ok(!migration.toUpperCase().includes("DELETE FROM"));
 
 // Visits report: public-only aggregates, distinct sessions, US states, geo state
