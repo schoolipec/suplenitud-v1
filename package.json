@@ -12,13 +12,15 @@
     "admin:bootstrap": "tsx scripts/bootstrap-superadmin.mts",
     "verify:admin-users": "tsx scripts/verify-admin-users-api.mts",
     "verify:prayer-contact": "tsx scripts/verify-prayer-contact.mts",
-    "verify:invitations": "tsx scripts/verify-invitations.mts"
+    "verify:invitations": "tsx scripts/verify-invitations.mts",
+    "verify:visit-analytics": "tsx scripts/verify-visit-analytics.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@tabler/icons-react": "^3.49.0",
     "better-auth": "^1.7.7",
+    "maxmind": "^5.0.7",
     "next": "16.4.0",
     "next-intl": "^4.14.9",
     "nodemailer": "^10.1.0",

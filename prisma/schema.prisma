@@ -53,9 +53,11 @@ model AnalyticsEvent {
   referrer        String?
   userAgentFamily String?  @map("user_agent_family")
   deviceType      String?  @map("device_type")
+  isPublic        Boolean  @default(true) @map("is_public")
 
   @@index([occurredAt])
   @@index([locale])
+  @@index([isPublic, occurredAt])
   @@map("analytics_events")
 }
 
