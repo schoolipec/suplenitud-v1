@@ -9,7 +9,7 @@
 - `src/lib/payments/providers.ts` es la interfaz común `PaymentProvider`. Los adaptadores permanecen inactivos sin `PAYMENTS_ENABLED=true` más credenciales completas; nunca inventan URLs de aprobación.
 - `src/lib/payments/state.ts` contiene el ciclo de vida (`PENDING → APPROVED → COMPLETED`, más `FAILED`, `CANCELLED`, `REFUNDED`; `CONFIRMED` heredado), los mapeos de eventos por proveedor, la verificación HMAC de Square y la regla de idempotencia.
 - Rutas públicas: `POST /api/donations/checkout` responde 503 desactivado/incompleto y 501 configurado-pero-no-implementado. Ningún callback de navegador puede marcar pagos como completados, por diseño no existe esa ruta.
-- Webhooks: `POST /api/webhooks/paypal` (rechaza 503 sin credenciales; la verificación PayPal exige llamada API en vivo), `POST /api/webhooks/square` (HMAC verificado sobre el cuerpo crudo antes de escribir; 401 con firma inválida; libro idempotente `UNIQUE(provider, external_id)`; solo transiciones válidas; auditoría mínima; sin correos ni envíos externos).
+- Webhooks: `POST /api/webhooks/paypal` (rechaza 503 sin credenciales; la verificación PayPal exige llamada API en vivo), `POST /api/webhooks/square` (HMAC-SHA256 sobre `notificationUrl + rawBody` con la URL configurada en servidor, comparado en tiempo constante, antes de escribir; 401 con firma inválida; entregas concurrentes resueltas por la restricción única como duplicados 200, nunca 500; libro idempotente `UNIQUE(provider, external_id)`; solo transiciones válidas; auditoría mínima; sin correos ni envíos externos).
 - `Donation` lleva proveedor, importe, moneda, campaña, fondo opcional, estado, referencia externa y `reconciledAt`. `DonationWebhookEvent` registra cada evento con estado de verificación/procesamiento.
 
 ## Qué falta recibir de la iglesia
@@ -17,17 +17,21 @@
 Primero sandbox y después producción. Nada de esto requiere cambios de código, solo credenciales y configuración:
 
 ### Sandbox
-1. Cuenta de desarrollador PayPal con cuenta sandbox de negocio.
-2. App REST sandbox: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`.
-3. Webhook sandbox suscrito a eventos de checkout/órdenes y capturas, apuntando a `https://demo.suplenitud.com/api/webhooks/paypal`: `PAYPAL_WEBHOOK_ID`.
-4. Cuenta de desarrollador Square con ubicación sandbox de prueba.
-5. Aplicación sandbox: `SQUARE_APPLICATION_ID`, `SQUARE_LOCATION_ID`, `SQUARE_ACCESS_TOKEN`.
-6. Suscripción webhook sandbox para pagos/reembolsos apuntando a `https://demo.suplenitud.com/api/webhooks/square`: `SQUARE_WEBHOOK_SIGNATURE_KEY`.
+PayPal (3 secretos):
+1. `PAYPAL_CLIENT_ID` y `PAYPAL_CLIENT_SECRET` de una app REST sandbox (requiere cuenta de desarrollador con negocio sandbox).
+2. `PAYPAL_WEBHOOK_ID` del webhook sandbox suscrito a checkout/órdenes y capturas, apuntando a `https://demo.suplenitud.com/api/webhooks/paypal`.
+
+Square (4 secretos + 1 URL de configuración):
+3. `SQUARE_APPLICATION_ID`, `SQUARE_LOCATION_ID` y `SQUARE_ACCESS_TOKEN` de la aplicación y ubicación sandbox (requiere cuenta de desarrollador; POS no basta).
+4. `SQUARE_WEBHOOK_SIGNATURE_KEY` de la suscripción webhook sandbox para pagos/reembolsos.
+5. `SQUARE_WEBHOOK_NOTIFICATION_URL` con el valor exacto `https://demo.suplenitud.com/api/webhooks/square` (la firma HMAC se calcula sobre URL + cuerpo; debe coincidir con lo registrado).
 
 ### Producción
-1. Los mismos seis valores PayPal desde una app REST en vivo más el webhook id en vivo.
-2. Los mismos cinco valores Square desde la aplicación y ubicación de producción más la clave de firma en vivo.
+1. Los mismos 3 secretos PayPal desde una app REST en vivo más el webhook id en vivo.
+2. Los mismos 4 secretos Square desde la aplicación y ubicación de producción, más la clave de firma en vivo y la URL de notificación en vivo.
 3. `PAYMENTS_MODE=live` (el default es `sandbox`) y `PAYMENTS_ENABLED=true`, solo en el `.env` del VPS.
+
+En total son 10 variables: 2 interruptores (`PAYMENTS_ENABLED`, `PAYMENTS_MODE`), 7 secretos y 1 URL de configuración.
 
 ## Configuración posterior de webhooks
 

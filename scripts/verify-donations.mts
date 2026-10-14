@@ -7,11 +7,12 @@ import {canManageDonations, canViewDonations} from "../src/lib/access";
 
 const role = (name: "SUPER_ADMIN" | "ADMIN" | "TREASURER" | "USHER"): ApplicationRole =>
   name as unknown as ApplicationRole;
-import {getPaymentsStatus, isProviderId, readPaymentsEnv} from "../src/lib/payments/config";
+import {getPaymentsStatus, isMissingSecret, isProviderId, isSquareConfigured, readPaymentsEnv} from "../src/lib/payments/config";
 import {
   canTransitionDonation,
   canVerifyPaypalWebhook,
   isDonationStatus,
+  isUniqueViolation,
   paypalEventStatus,
   squarePaymentStatus,
   verifySquareSignature,
@@ -40,6 +41,7 @@ const liveFull = envOf({
   SQUARE_LOCATION_ID: "loc",
   SQUARE_ACCESS_TOKEN: "tok",
   SQUARE_WEBHOOK_SIGNATURE_KEY: "key",
+  SQUARE_WEBHOOK_NOTIFICATION_URL: "https://demo.suplenitud.com/api/webhooks/square",
 });
 assert.deepEqual(getPaymentsStatus(liveFull), {
   enabled: true,
@@ -99,20 +101,72 @@ assert.equal(squarePaymentStatus("CANCELED"), "CANCELLED");
 assert.equal(squarePaymentStatus("REFUNDED"), "REFUNDED");
 assert.equal(squarePaymentStatus("PENDING"), null);
 
-// Square signature fixtures: valid accepted, anything else rejected
+// Square signature fixtures over notificationUrl + rawBody: valid accepted, anything else rejected
+const notifyUrl = "https://demo.suplenitud.com/api/webhooks/square";
 const payload = JSON.stringify({event_id: "evt_1", type: "payment.updated"});
 const key = "sig-key";
-const good = createHmac("sha256", key).update(payload, "utf8").digest("base64");
-assert.equal(verifySquareSignature({payload, signature: good, signatureKey: key}), true);
-assert.equal(verifySquareSignature({payload, signature: good, signatureKey: "wrong"}), false);
-assert.equal(verifySquareSignature({payload: `${payload} `, signature: good, signatureKey: key}), false);
-assert.equal(verifySquareSignature({payload, signature: "", signatureKey: key}), false);
-assert.equal(verifySquareSignature({payload, signature: good, signatureKey: ""}), false);
+const sign = (url: string, body: string, secret: string) =>
+  createHmac("sha256", secret).update(`${url}${body}`, "utf8").digest("base64");
+const good = sign(notifyUrl, payload, key);
+const base = {notificationUrl: notifyUrl, payload, signature: good, signatureKey: key};
+assert.equal(verifySquareSignature(base), true);
+assert.equal(verifySquareSignature({...base, payload: `${payload} `}), false);
+assert.equal(verifySquareSignature({...base, notificationUrl: "https://demo.suplenitud.com/api/webhooks/paypal"}), false);
+assert.equal(verifySquareSignature({...base, signature: "bogus"}), false);
+assert.equal(verifySquareSignature({...base, signatureKey: ""}), false);
+assert.equal(verifySquareSignature({...base, notificationUrl: ""}), false);
+// Body-only signatures from the old scheme never verify
+const bodyOnly = createHmac("sha256", key).update(payload, "utf8").digest("base64");
+assert.equal(verifySquareSignature({...base, signature: bodyOnly}), false);
 
 // PayPal is unverifiable without full configuration
 assert.equal(canVerifyPaypalWebhook("", "", ""), false);
 assert.equal(canVerifyPaypalWebhook("c", "s", ""), false);
 assert.equal(canVerifyPaypalWebhook("c", "s", "w"), true);
+assert.equal(canVerifyPaypalWebhook("CHANGE_ME", "s", "w"), false);
+assert.equal(canVerifyPaypalWebhook("c", "example-secret", "w"), false);
+
+// Placeholders are never credentials, even with payments enabled
+assert.equal(isMissingSecret(""), true);
+assert.equal(isMissingSecret("CHANGE_ME"), true);
+assert.equal(isMissingSecret("change-me"), true);
+assert.equal(isMissingSecret("example-key"), true);
+assert.equal(isMissingSecret("replace-with-real"), true);
+assert.equal(isMissingSecret("YOUR_PLACEHOLDER"), true);
+assert.equal(isMissingSecret("real-secret-value"), false);
+assert.equal(isMissingSecret(null), true);
+const placeholderEnv = envOf({
+  PAYMENTS_ENABLED: "true",
+  PAYPAL_CLIENT_ID: "CHANGE_ME",
+  PAYPAL_CLIENT_SECRET: "example",
+  PAYPAL_WEBHOOK_ID: "w",
+  SQUARE_APPLICATION_ID: "app",
+  SQUARE_LOCATION_ID: "loc",
+  SQUARE_ACCESS_TOKEN: "CHANGE_ME",
+  SQUARE_WEBHOOK_SIGNATURE_KEY: "placeholder",
+  SQUARE_WEBHOOK_NOTIFICATION_URL: "https://demo.suplenitud.com/api/webhooks/square",
+});
+assert.equal(getPaymentsStatus(placeholderEnv).paypal, "missing_credentials");
+assert.equal(getPaymentsStatus(placeholderEnv).square, "missing_credentials");
+assert.equal(isSquareConfigured(readPaymentsEnv(placeholderEnv).secrets), false);
+assert.equal(
+  isSquareConfigured(
+    readPaymentsEnv(envOf({
+      SQUARE_APPLICATION_ID: "app",
+      SQUARE_LOCATION_ID: "loc",
+      SQUARE_ACCESS_TOKEN: "tok",
+      SQUARE_WEBHOOK_SIGNATURE_KEY: "key",
+      SQUARE_WEBHOOK_NOTIFICATION_URL: "https://demo.suplenitud.com/api/webhooks/square",
+    })).secrets,
+  ),
+  true,
+);
+
+// Unique violations map to the duplicate path, everything else rethrows
+assert.equal(isUniqueViolation({code: "P2002"}), true);
+assert.equal(isUniqueViolation({code: "P2025"}), false);
+assert.equal(isUniqueViolation(new Error("boom")), false);
+assert.equal(isUniqueViolation(null), false);
 
 // Idempotency key shape matches the UNIQUE(provider, external_id) ledger
 assert.equal(webhookEventKey("SQUARE", "evt_1"), "SQUARE:evt_1");
@@ -132,13 +186,21 @@ assert.ok(!paypalRoute.includes("COMPLETED\""));
 assert.match(paypalRoute, /payments_disabled/);
 assert.match(paypalRoute, /not_implemented/);
 const squareRoute = readFileSync(join(root, "src/app/api/webhooks/square/route.ts"), "utf8");
+assert.match(squareRoute, /isSquareConfigured/);
+assert.match(squareRoute, /secrets\.squareWebhookNotificationUrl/);
+assert.match(squareRoute, /x-square-hmacsha256-signature/);
+assert.ok(!squareRoute.includes("request.url"));
+assert.ok(!squareRoute.includes("headers.get(\"host\""));
+assert.ok(!squareRoute.includes("headers.get(\"origin\""));
 assert.match(squareRoute, /invalid_signature/);
 assert.match(squareRoute, /status: 401/);
 assert.match(squareRoute, /duplicate/);
-assert.match(squareRoute, /provider_externalId/);
+assert.match(squareRoute, /isUniqueViolation/);
 assert.match(squareRoute, /DONATION_WEBHOOK_PROCESSED/);
+const donationSchema = readFileSync(join(root, "prisma/schema.prisma"), "utf8");
+assert.match(donationSchema, /@@unique\(\[provider, externalId\]\)/);
+assert.ok(squareRoute.indexOf("isSquareConfigured") < squareRoute.indexOf("verifySquareSignature"));
 assert.ok(squareRoute.indexOf("invalid_signature") < squareRoute.indexOf("donationWebhookEvent.create"));
-assert.ok(!squareRoute.includes("hasValidPublicOrigin"));
 
 // Wiring: admin module uses view permission, shows readiness without secrets
 const donationsPage = readFileSync(join(root, "src/app/admin/donations/page.tsx"), "utf8");
@@ -166,5 +228,6 @@ console.log("verify-donations: all checks passed");
 console.log("  - Disabled/incomplete configuration never enables money movement");
 console.log("  - Readiness labels carry no secrets; roles unchanged, donations view extended as approved");
 console.log("  - COMPLETED reachable only from APPROVED/CONFIRMED via verified webhooks");
-console.log("  - Square HMAC fixtures accepted/rejected; PayPal unverifiable without credentials");
+console.log("  - Square HMAC over URL+body accepted/rejected; placeholders never count as credentials");
+console.log("  - Unique violations answer as duplicates, never 500; PayPal unverifiable without credentials");
 console.log("  - Webhook ledger keyed by provider+event; duplicates skipped; invalid signatures rejected pre-write");

@@ -286,14 +286,14 @@ Implementada en `feature/donations-foundation` (basada en `origin/nextjs-migrati
 
 ### Configuración y modelo
 
-1. **Variables documentadas en `.env.example` sin valores:** `PAYMENTS_ENABLED=false`, `PAYMENTS_MODE=sandbox` y credenciales/IDs de PayPal y Square. Los secretos reales solo van al `.env` del VPS; el panel solo muestra estado (`disabled`, `missing_credentials`, `sandbox_ready`, `live_ready`), nunca valores.
+1. **Variables documentadas en `.env.example` sin valores:** `PAYMENTS_ENABLED=false`, `PAYMENTS_MODE=sandbox`, 3 secretos PayPal y 4 secretos + 1 URL de configuración Square (`SQUARE_WEBHOOK_NOTIFICATION_URL`, obligatoria para `ready`). `""`, `CHANGE_ME` y valores con `example`/`replace`/`placeholder` siempre cuentan como ausentes. Los secretos reales solo van al `.env` del VPS; el panel solo muestra estado (`disabled`, `missing_credentials`, `sandbox_ready`, `live_ready`), nunca valores.
 2. **Migración `20261017000000_donations_foundation` (no destructiva):** estados `APPROVED`, `COMPLETED`, `CANCELLED` (`CONFIRMED` se conserva como legado), columnas `fund` y `reconciled_at`, y tabla `donation_webhook_events` con unicidad `(provider, external_id)`. Filas existentes intactas.
 3. **Sin tarjetas:** no se almacenan tarjetas, CVV, tokens de comprador ni payloads sensibles. `COMPLETED` solo se escribe desde un webhook verificado; ningún callback de navegador puede hacerlo (esa ruta no existe).
 
 ### Rutas y panel
 
 1. **Adaptadores inactivos** con interfaz común; `POST /api/donations/checkout` responde 503 desactivado/incompleto y 501 configurado-pero-no-implementado, sin inventar URLs ni llamadas reales.
-2. **Webhooks:** cuerpo crudo preservado, firma verificada antes de persistir (Square HMAC; PayPal exige credenciales y rechaza 503 sin ellas), idempotencia por evento, auditoría mínima, sin envíos externos.
+2. **Webhooks:** cuerpo crudo preservado, firma HMAC-SHA256 sobre `notificationUrl + rawBody` (URL solo de configuración servidor, comparada en tiempo constante) antes de persistir; PayPal exige credenciales y rechaza 503 sin ellas; entregas concurrentes resueltas por la restricción única como duplicados 200, nunca 500; auditoría mínima; sin envíos externos.
 3. **`/admin/donations` como conciliación:** resumen por estado/proveedor, tabla filtrable, detalle con historial de webhooks y diagnóstico de configuración sin secretos. `TREASURER` ve conciliación; `ADMIN`/`SUPER_ADMIN` ven además el diagnóstico. Responsive a 390 px.
 
 ### Verificación de esta fase
