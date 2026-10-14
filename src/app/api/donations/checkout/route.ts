@@ -37,7 +37,6 @@ export async function POST(request: Request) {
     return NextResponse.json({error: "invalid_fund"}, {status: 400});
   }
 
-  const status = getPaymentsStatus();
   const adapter = body.provider === "PAYPAL" ? createPaypalAdapter(getPaymentsStatus) : createSquareAdapter(getPaymentsStatus);
   const result = await adapter.createCheckout({
     amountCents: body.amountCents,
