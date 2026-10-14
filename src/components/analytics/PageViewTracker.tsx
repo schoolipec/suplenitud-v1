@@ -13,6 +13,10 @@ function referrerDomain() {
 export function PageViewTracker() {
   const pathname = usePathname();
   useEffect(() => {
+    const segments = pathname.split("/").filter(Boolean);
+    const head = segments[0]?.toLowerCase();
+    const inner = head && locales.has(head) && segments.length > 1 ? segments[1].toLowerCase() : head;
+    if (inner === "admin" || inner === "api" || inner === "invite") return;
     let sessionId = sessionStorage.getItem(sessionKey);
     if (!sessionId) { sessionId = crypto.randomUUID(); sessionStorage.setItem(sessionKey, sessionId); }
     const firstSegment = pathname.split("/").filter(Boolean)[0];
