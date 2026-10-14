@@ -167,8 +167,8 @@ assert.match(manager, /setEditorKey/);
 
 // Migration: revision language/action columns plus seeded catalog, legacy-safe
 const migration = readFileSync(join(root, "prisma/migrations/20261016000000_content_editor_workflow/migration.sql"), "utf8");
-assert.match(migration, /ADD COLUMN "locale"/);
-assert.match(migration, /ADD COLUMN "action"/);
+assert.match(migration, /ADD COLUMN IF NOT EXISTS "locale"/);
+assert.match(migration, /ADD COLUMN IF NOT EXISTS "action"/);
 assert.match(migration, /home\.hero/);
 assert.match(migration, /ON CONFLICT \("key"\) DO NOTHING/);
 assert.match(migration, /"created_at", "updated_at"/);

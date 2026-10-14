@@ -2,8 +2,8 @@
 -- block catalog. Existing rows are preserved; new columns stay nullable for
 -- legacy revisions, while all new revisions record locale and action.
 
-ALTER TABLE "content_revisions" ADD COLUMN "locale" VARCHAR(5);
-ALTER TABLE "content_revisions" ADD COLUMN "action" TEXT;
+ALTER TABLE "content_revisions" ADD COLUMN IF NOT EXISTS "locale" VARCHAR(5);
+ALTER TABLE "content_revisions" ADD COLUMN IF NOT EXISTS "action" TEXT;
 
 INSERT INTO "content_blocks" ("id", "key", "type", "display_order", "status", "created_at", "updated_at")
 VALUES
