@@ -132,7 +132,9 @@ export function validateDocument(source: unknown): {ok: boolean; errors: string[
   return {ok: errors.length === 0, errors: [...new Set(errors)]};
 }
 
-export function parseTranslationContent(content: unknown): {ok: boolean; source?: string; errors?: string[]} {
+export function parseTranslationContent(
+  content: unknown,
+): {ok: true; source: string} | {ok: false; errors: string[]} {
   if (!content || typeof content !== "object" || Array.isArray(content)) {
     return {ok: false, errors: ["invalid_shape"]};
   }

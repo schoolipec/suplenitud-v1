@@ -345,7 +345,8 @@ model ContentTranslation {
   id        String       @id @default(uuid()) @db.Uuid
   blockId   String       @map("block_id") @db.Uuid
   locale    String       @db.VarChar(5)
-  content   Json
+  draft     Json
+  published Json?
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
   block     ContentBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
