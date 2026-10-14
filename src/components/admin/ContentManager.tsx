@@ -1,7 +1,6 @@
 "use client";
 
 import {useMemo, useRef, useState} from "react";
-import {useRouter} from "next/navigation";
 import {IconCheck, IconChevronDown, IconChevronUp, IconEye} from "@tabler/icons-react";
 import {REQUIRED_LOCALES} from "@/lib/content-catalog";
 import {renderSafeHtml} from "@/lib/content-document";
@@ -53,108 +52,37 @@ function prefixLines(prefix: string) {
   };
 }
 
+async function fetchBlocks(): Promise<ContentBlockData[]> {
+  const response = await fetch("/api/admin/content", {cache: "no-store"});
+  if (!response.ok) throw new Error("reload_failed");
+  const data = await response.json() as {blocks?: ContentBlockData[]};
+  return data.blocks ?? [];
+}
+
 export function ContentManager({initialBlocks}: {initialBlocks: ContentBlockData[]}) {
-  const router = useRouter();
-  const [blocks] = useState<ContentBlockData[]>(initialBlocks);
+  const [blocks, setBlocks] = useState<ContentBlockData[]>(initialBlocks);
   const [selectedId, setSelectedId] = useState<string | null>(initialBlocks[0]?.id ?? null);
   const [locale, setLocale] = useState<string>("en");
-  const [source, setSource] = useState("");
-  const [initializedFor, setInitializedFor] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [confirming, setConfirming] = useState<"publish" | "unpublish" | string | null>(null);
-  const [expandedRevisions, setExpandedRevisions] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [editorKey, setEditorKey] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [listMessage, setListMessage] = useState<string | null>(null);
 
   const selected = blocks.find((block) => block.id === selectedId) ?? null;
-  const translationKey = selected ? `${selected.id}:${locale}` : "";
-  if (selected && initializedFor !== translationKey) {
-    setInitializedFor(translationKey);
-    setSource(selected.translations.find((entry) => entry.locale === locale)?.source ?? "");
-    setConfirming(null);
-    setMessage(null);
-  }
 
-  const previewHtml = useMemo(() => renderSafeHtml(source), [source]);
-
-  async function saveDraft() {
-    if (!selected) return;
-    setMessage(null);
-    setSaving(true);
-    const response = await fetch(`/api/admin/content/${selected.id}/translations`, {
-      method: "PUT",
-      headers: {"content-type": "application/json"},
-      body: JSON.stringify({locale, source}),
-    });
-    const data = await response.json().catch(() => null);
-    setSaving(false);
-    if (!response.ok) {
-      setMessage(
-        data?.error === "invalid_document"
-          ? `The document is not valid: ${(data.details ?? []).join(", ")}. Raw HTML, scripts and unsafe links are not allowed.`
-          : "The translation could not be saved.",
-      );
-      return;
+  async function refresh() {
+    setLoading(true);
+    try {
+      const fresh = await fetchBlocks();
+      setBlocks(fresh);
+      if (selectedId && !fresh.some((block) => block.id === selectedId)) {
+        setSelectedId(fresh[0]?.id ?? null);
+      }
+      setEditorKey((key) => key + 1);
+    } catch {
+      setListMessage("The list could not be refreshed. Reload the page to see current data.");
+    } finally {
+      setLoading(false);
     }
-    setMessage("Draft saved and recorded as a revision.");
-    router.refresh();
-  }
-
-  async function runPublish() {
-    if (!selected) return;
-    setMessage(null);
-    setSaving(true);
-    const response = await fetch(`/api/admin/content/${selected.id}/publish`, {method: "POST"});
-    const data = await response.json().catch(() => null);
-    setSaving(false);
-    setConfirming(null);
-    if (!response.ok) {
-      setMessage(
-        data?.error === "incomplete_translations"
-          ? `Publishing is blocked. Missing or invalid translations: ${(data.missing ?? []).join(", ")}.`
-          : "The block could not be published.",
-      );
-      return;
-    }
-    setMessage("Published. A revision was recorded for every language.");
-    router.refresh();
-  }
-
-  async function runUnpublish() {
-    if (!selected) return;
-    setMessage(null);
-    setSaving(true);
-    const response = await fetch(`/api/admin/content/${selected.id}/unpublish`, {method: "POST"});
-    setSaving(false);
-    setConfirming(null);
-    if (!response.ok) {
-      setMessage("The block could not be unpublished.");
-      return;
-    }
-    setMessage("Unpublished. The block is now a draft.");
-    router.refresh();
-  }
-
-  async function runRestore(revisionId: string) {
-    if (!selected) return;
-    setMessage(null);
-    setSaving(true);
-    const response = await fetch(`/api/admin/content/${selected.id}/restore`, {
-      method: "POST",
-      headers: {"content-type": "application/json"},
-      body: JSON.stringify({revisionId, confirm: true}),
-    });
-    const data = await response.json().catch(() => null);
-    setSaving(false);
-    setConfirming(null);
-    if (!response.ok) {
-      setMessage(data?.error === "unrestorable_revision" ? "That revision cannot be restored." : "The revision could not be restored.");
-      return;
-    }
-    const restored = data as {locale?: string};
-    if (typeof restored.locale === "string") setLocale(restored.locale);
-    setMessage("Revision restored and recorded as a new revision.");
-    router.refresh();
   }
 
   return (
@@ -165,7 +93,13 @@ export function ContentManager({initialBlocks}: {initialBlocks: ContentBlockData
             <h2>Content blocks</h2>
             <p>Fixed catalog with stable keys. New keys are never created from the UI.</p>
           </div>
+          <div className="admin-section-actions">
+            <button type="button" className="admin-button-secondary" onClick={refresh} disabled={loading}>
+              {loading ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
         </div>
+        {listMessage ? <p className="admin-status-message" role="status">{listMessage}</p> : null}
         {blocks.length === 0 ? (
           <p className="admin-empty">No content blocks yet. They are seeded by migration.</p>
         ) : (
@@ -198,142 +132,271 @@ export function ContentManager({initialBlocks}: {initialBlocks: ContentBlockData
       </section>
 
       {selected ? (
-        <section className="admin-section">
-          <div className="admin-section-heading">
-            <div>
-              <h2>{selected.label}</h2>
-              <p>{selected.description} Key: <code>{selected.key}</code> · Type: {selected.type}</p>
-            </div>
-          </div>
+        <BlockEditor
+          key={`${selected.id}:${locale}:${editorKey}`}
+          block={selected}
+          locale={locale}
+          onLocaleChange={setLocale}
+          onChanged={refresh}
+        />
+      ) : null}
+    </div>
+  );
+}
 
-          {message ? <p className="admin-status-message" role="status">{message}</p> : null}
+function BlockEditor({
+  block,
+  locale,
+  onLocaleChange,
+  onChanged,
+}: {
+  block: ContentBlockData;
+  locale: string;
+  onLocaleChange: (locale: string) => void;
+  onChanged: () => Promise<void>;
+}) {
+  const [source, setSource] = useState(
+    () => block.translations.find((entry) => entry.locale === locale)?.source ?? "",
+  );
+  const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState<"publish" | "unpublish" | string | null>(null);
+  const [expandedRevisions, setExpandedRevisions] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-          <div className="content-locale-tabs" role="tablist" aria-label="Translation language">
-            {(REQUIRED_LOCALES as readonly string[]).map((entry) => {
-              const missing = selected.missingLocales.includes(entry);
-              return (
-                <button
-                  key={entry}
-                  type="button"
-                  role="tab"
-                  aria-selected={locale === entry}
-                  className={locale === entry ? "content-locale-tab is-active" : "content-locale-tab"}
-                  onClick={() => setLocale(entry)}
-                >
-                  {entry.toUpperCase()}
-                  {missing ? <span className="content-missing-dot" aria-label="Missing translation">•</span> : null}
-                </button>
-              );
-            })}
-          </div>
+  const previewHtml = useMemo(() => renderSafeHtml(source), [source]);
+  const publishedSource = block.published.find((entry) => entry.locale === locale)?.source ?? null;
+  const publishedHtml = useMemo(
+    () => (publishedSource === null ? null : renderSafeHtml(publishedSource)),
+    [publishedSource],
+  );
+  const draftMatchesPublished =
+    publishedSource !== null &&
+    (block.translations.find((entry) => entry.locale === locale)?.source ?? "") === publishedSource;
 
-          <div className="content-editor-grid">
-            <div>
-              <div className="content-toolbar" role="toolbar" aria-label="Formatting">
-                <ToolbarButton label="H1" title="Heading 1" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("# "))} />
-                <ToolbarButton label="H2" title="Heading 2" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("## "))} />
-                <ToolbarButton label="H3" title="Heading 3" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("### "))} />
-                <ToolbarButton label="B" title="Bold" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("**", "**", "bold text"))} />
-                <ToolbarButton label="I" title="Italic" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("*", "*", "italic text"))} />
-                <ToolbarButton label="Link" title="Link (https only)" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("[", "](https://example.com)", "link text"))} />
+  async function saveDraft() {
+    setMessage(null);
+    setSaving(true);
+    const response = await fetch(`/api/admin/content/${block.id}/translations`, {
+      method: "PUT",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({locale, source}),
+    });
+    const data = await response.json().catch(() => null);
+    setSaving(false);
+    if (!response.ok) {
+      setMessage(
+        data?.error === "invalid_document"
+          ? `The draft is not valid: ${(data.details ?? []).join(", ")}. Raw HTML, scripts and unsafe links are not allowed. The published version is unchanged.`
+          : "The draft could not be saved. The published version is unchanged.",
+      );
+      return;
+    }
+    setMessage("Draft saved and recorded as a revision. The published version is unchanged.");
+    await onChanged();
+  }
+
+  async function runPublish() {
+    setMessage(null);
+    setSaving(true);
+    const response = await fetch(`/api/admin/content/${block.id}/publish`, {method: "POST"});
+    const data = await response.json().catch(() => null);
+    setSaving(false);
+    setConfirming(null);
+    if (!response.ok) {
+      setMessage(
+        data?.error === "incomplete_translations"
+          ? `Publishing is blocked. Missing or invalid drafts: ${(data.missing ?? []).join(", ")}.`
+          : "The block could not be published.",
+      );
+      return;
+    }
+    setMessage("Published. The five valid drafts were promoted and recorded.");
+    await onChanged();
+  }
+
+  async function runUnpublish() {
+    setMessage(null);
+    setSaving(true);
+    const response = await fetch(`/api/admin/content/${block.id}/unpublish`, {method: "POST"});
+    setSaving(false);
+    setConfirming(null);
+    if (!response.ok) {
+      setMessage("The block could not be unpublished.");
+      return;
+    }
+    setMessage("Unpublished. Drafts and revisions were kept intact.");
+    await onChanged();
+  }
+
+  async function runRestore(revisionId: string) {
+    setMessage(null);
+    setSaving(true);
+    const response = await fetch(`/api/admin/content/${block.id}/restore`, {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify({revisionId, confirm: true}),
+    });
+    const data = await response.json().catch(() => null);
+    setSaving(false);
+    setConfirming(null);
+    if (!response.ok) {
+      setMessage(data?.error === "unrestorable_revision" ? "That revision cannot be restored." : "The revision could not be restored.");
+      return;
+    }
+    const restored = data as {locale?: string};
+    if (typeof restored.locale === "string" && restored.locale !== locale) onLocaleChange(restored.locale);
+    setMessage("Revision restored as a new draft. The published version is unchanged until you publish.");
+    await onChanged();
+  }
+
+  return (
+    <section className="admin-section">
+      <div className="admin-section-heading">
+        <div>
+          <h2>{block.label}</h2>
+          <p>{block.description} Key: <code>{block.key}</code> · Type: {block.type}</p>
+        </div>
+      </div>
+
+      {message ? <p className="admin-status-message" role="status">{message}</p> : null}
+
+      <div className="content-locale-tabs" role="tablist" aria-label="Translation language">
+        {(REQUIRED_LOCALES as readonly string[]).map((entry) => {
+          const missing = block.missingLocales.includes(entry);
+          return (
+            <button
+              key={entry}
+              type="button"
+              role="tab"
+              aria-selected={locale === entry}
+              className={locale === entry ? "content-locale-tab is-active" : "content-locale-tab"}
+              onClick={() => onLocaleChange(entry)}
+            >
+              {entry.toUpperCase()}
+              {missing ? <span className="content-missing-dot" aria-label="Missing translation">•</span> : null}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="content-editor-grid">
+        <div>
+          <div className="content-toolbar" role="toolbar" aria-label="Formatting">
+            <ToolbarButton label="H1" title="Heading 1" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("# "))} />
+            <ToolbarButton label="H2" title="Heading 2" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("## "))} />
+            <ToolbarButton label="H3" title="Heading 3" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("### "))} />
+            <ToolbarButton label="B" title="Bold" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("**", "**", "bold text"))} />
+            <ToolbarButton label="I" title="Italic" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("*", "*", "italic text"))} />
+            <ToolbarButton label="Link" title="Link (https only)" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("[", "](https://example.com)", "link text"))} />
                 <ToolbarButton label="List" title="Bulleted list" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("- "))} />
-                <ToolbarButton label="Quote" title="Quote" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("> "))} />
-              </div>
-              <label className="admin-sr-only" htmlFor="content-source">Content source ({locale})</label>
-              <textarea
-                id="content-source"
-                ref={textareaRef}
-                className="content-source"
-                value={source}
-                onChange={(event) => setSource(event.target.value)}
-                rows={14}
-                placeholder={"# Title\n\nWrite paragraphs here.\n\n- List item\n\n> Quote"}
-              />
-              <div className="admin-form-actions">
-                <button type="button" className="admin-button-primary" onClick={saveDraft} disabled={saving}>
-                  {saving ? "Saving…" : "Save draft"}
+            <ToolbarButton label="Quote" title="Quote" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("> "))} />
+          </div>
+          <label className="admin-sr-only" htmlFor="content-source">Draft source ({locale})</label>
+          <textarea
+            id="content-source"
+            ref={textareaRef}
+            className="content-source"
+            value={source}
+            onChange={(event) => setSource(event.target.value)}
+            rows={14}
+            placeholder={"# Title\n\nWrite paragraphs here.\n\n- List item\n\n> Quote"}
+          />
+          <div className="admin-form-actions">
+            <button type="button" className="admin-button-primary" onClick={saveDraft} disabled={saving}>
+              {saving ? "Saving…" : "Save draft"}
+            </button>
+          </div>
+          <p className="admin-field-note">Saving updates the draft only. The published version never changes here.</p>
+        </div>
+        <div>
+          <h3 className="content-preview-heading"><IconEye size={17} aria-hidden /> Draft preview ({locale})</h3>
+          <div className="content-preview" dangerouslySetInnerHTML={{__html: previewHtml || "<p><em>Nothing to preview yet.</em></p>"}} />
+          <div className="admin-form-actions">
+            {block.status === "PUBLISHED" ? (
+              confirming === "unpublish" ? (
+                <span className="admin-confirm-inline">
+                  <span>Unpublish this block? Drafts stay intact.</span>
+                  <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={runUnpublish} aria-label="Confirm unpublish">
+                    <IconCheck size={17} aria-hidden />
+                  </button>
+                  <button type="button" className="admin-button-ghost" onClick={() => setConfirming(null)}>Cancel</button>
+                </span>
+              ) : (
+                <button type="button" className="admin-button-secondary" onClick={() => setConfirming("unpublish")} disabled={saving}>
+                  Unpublish
                 </button>
-              </div>
-            </div>
-            <div>
-              <h3 className="content-preview-heading"><IconEye size={17} aria-hidden /> Preview ({locale})</h3>
-              <div className="content-preview" dangerouslySetInnerHTML={{__html: previewHtml || "<p><em>Nothing to preview yet.</em></p>"}} />
-              <div className="admin-form-actions">
-                {selected.status === "PUBLISHED" ? (
-                  confirming === "unpublish" ? (
+              )
+            ) : confirming === "publish" ? (
+              <span className="admin-confirm-inline">
+                <span>Promote the five valid drafts to published?</span>
+                <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={runPublish} aria-label="Confirm publish">
+                  <IconCheck size={17} aria-hidden />
+                </button>
+                <button type="button" className="admin-button-ghost" onClick={() => setConfirming(null)}>Cancel</button>
+              </span>
+            ) : (
+              <button type="button" className="admin-button-primary" onClick={() => setConfirming("publish")} disabled={saving}>
+                Review &amp; publish
+              </button>
+            )}
+          </div>
+          {block.missingLocales.length > 0 ? (
+            <p className="admin-field-note">Publishing is blocked until every language has a valid draft. Missing: {block.missingLocales.join(", ")}.</p>
+          ) : null}
+          <h3 className="content-preview-heading">Published version ({locale})</h3>
+          {publishedHtml === null ? (
+            <p className="admin-empty">Not published in this language.</p>
+          ) : (
+            <>
+              <div className="content-preview content-preview-published" dangerouslySetInnerHTML={{__html: publishedHtml}} />
+              {draftMatchesPublished ? null : (
+                <p className="admin-field-note">The draft differs from the published version.</p>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="content-revisions">
+        <button
+          type="button"
+          className="admin-button-ghost"
+          onClick={() => setExpandedRevisions((open) => !open)}
+          aria-expanded={expandedRevisions}
+        >
+          {expandedRevisions ? <IconChevronUp size={17} aria-hidden /> : <IconChevronDown size={17} aria-hidden />}
+          Revision history ({block.revisions.length})
+        </button>
+        {expandedRevisions ? (
+          block.revisions.length === 0 ? (
+            <p className="admin-empty">No revisions recorded yet.</p>
+          ) : (
+            <ul className="admin-audit-list">
+              {block.revisions.map((revision) => (
+                <li key={revision.id}>
+                  <strong>{revision.action} · {revision.locale}</strong>
+                  <span>{revision.createdBy} · {revision.createdAt}</span>
+                  <span className="content-revision-preview">{revision.preview}</span>
+                  {confirming === revision.id ? (
                     <span className="admin-confirm-inline">
-                      <span>Unpublish this block?</span>
-                      <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={runUnpublish} aria-label="Confirm unpublish">
+                      <span>Restore as a new draft? Published content stays until you publish.</span>
+                      <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => runRestore(revision.id)} aria-label="Confirm restore">
                         <IconCheck size={17} aria-hidden />
                       </button>
                       <button type="button" className="admin-button-ghost" onClick={() => setConfirming(null)}>Cancel</button>
                     </span>
                   ) : (
-                    <button type="button" className="admin-button-secondary" onClick={() => setConfirming("unpublish")} disabled={saving}>
-                      Unpublish
+                    <button type="button" className="admin-button-secondary admin-button-small" onClick={() => setConfirming(revision.id)} disabled={saving}>
+                      Restore
                     </button>
-                  )
-                ) : confirming === "publish" ? (
-                  <span className="admin-confirm-inline">
-                    <span>Publish after reviewing the preview?</span>
-                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={runPublish} aria-label="Confirm publish">
-                      <IconCheck size={17} aria-hidden />
-                    </button>
-                    <button type="button" className="admin-button-ghost" onClick={() => setConfirming(null)}>Cancel</button>
-                  </span>
-                ) : (
-                  <button type="button" className="admin-button-primary" onClick={() => setConfirming("publish")} disabled={saving}>
-                    Review &amp; publish
-                  </button>
-                )}
-              </div>
-              {selected.missingLocales.length > 0 ? (
-                <p className="admin-field-note">Publishing is blocked until every language is complete. Missing: {selected.missingLocales.join(", ")}.</p>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="content-revisions">
-            <button
-              type="button"
-              className="admin-button-ghost"
-              onClick={() => setExpandedRevisions((open) => !open)}
-              aria-expanded={expandedRevisions}
-            >
-              {expandedRevisions ? <IconChevronUp size={17} aria-hidden /> : <IconChevronDown size={17} aria-hidden />}
-              Revision history ({selected.revisions.length})
-            </button>
-            {expandedRevisions ? (
-              selected.revisions.length === 0 ? (
-                <p className="admin-empty">No revisions recorded yet.</p>
-              ) : (
-                <ul className="admin-audit-list">
-                  {selected.revisions.map((revision) => (
-                    <li key={revision.id}>
-                      <strong>{revision.action} · {revision.locale}</strong>
-                      <span>{revision.createdBy} · {revision.createdAt}</span>
-                      <span className="content-revision-preview">{revision.preview}</span>
-                      {confirming === revision.id ? (
-                        <span className="admin-confirm-inline">
-                          <span>Restore this revision? The restored text is recorded as a new revision.</span>
-                          <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => runRestore(revision.id)} aria-label="Confirm restore">
-                            <IconCheck size={17} aria-hidden />
-                          </button>
-                          <button type="button" className="admin-button-ghost" onClick={() => setConfirming(null)}>Cancel</button>
-                        </span>
-                      ) : (
-                        <button type="button" className="admin-button-secondary admin-button-small" onClick={() => setConfirming(revision.id)} disabled={saving}>
-                          Restore
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )
-            ) : null}
-          </div>
-        </section>
-      ) : null}
-    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )
+        ) : null}
+      </div>
+    </section>
   );
 }

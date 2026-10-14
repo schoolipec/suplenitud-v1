@@ -262,6 +262,12 @@ Implementada en `feature/content-editor-workflow` (basada en `origin/nextjs-migr
 3. **Traducciones** en `en/es/pt/ko/de` con forma fija `{format: "limited-richtext-v1", source}`; indicador de faltantes por bloque y por pestaña; publicación bloqueada (`incomplete_translations`) hasta completar los cinco idiomas válidos.
 4. **Revisiones inmutables** en cada guardado, publicación y restauración (autor, fecha, idioma, contenido, acción); migración `20261016000000_content_editor_workflow` añade `locale`/`action` (nulables por legado) y siembra el catálogo. Restauración solo con `confirm: true` explícito + auditoría `CONTENT_REVISION_RESTORED`.
 
+### Separación borrador/publicado (corrección en la misma rama)
+
+1. **Columnas separadas:** `ContentTranslation.draft` (edición) y `published` (versión viva, nulable). Migración `20261016010000_content_draft_published_split`: renombra `content`→`draft` sin pérdida, añade `published` y la rellena solo desde bloques ya `PUBLISHED`. Sin DELETE ni DROP de datos.
+2. **Guardar** escribe solo el borrador; **publicar** promueve explícitamente los cinco borradores válidos (400 `incomplete_translations` en caso contrario); **despublicar** anula `published` y conserva borradores y revisiones; **restaurar** escribe solo el borrador. Las lecturas públicas (`getPublishedContent`) usan únicamente `published`.
+3. **UI coherente sin recarga:** `ContentManager` refresca vía `GET /api/admin/content` tras cada mutación y reinicia el editor con `key` (sin setState en render); muestra vista previa del borrador y de la versión publicada por separado, con aviso cuando difieren.
+
 ### Verificación de esta fase
 
 - `npm run verify:content-editor` (nuevo: catálogo, marcado y sanitización, gating de publicación, revisiones/restauración confirmada, sesión+rol+origen en cada mutación), `prisma:generate`, `lint`, `typecheck`, `build`, `git diff --check`: todo pasa.

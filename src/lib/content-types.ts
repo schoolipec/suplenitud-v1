@@ -24,5 +24,6 @@ export type ContentBlockData = {
   catalogued: boolean;
   missingLocales: string[];
   translations: ContentTranslationData[];
+  published: ContentTranslationData[];
   revisions: ContentRevisionData[];
 };

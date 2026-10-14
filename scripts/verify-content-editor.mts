@@ -71,10 +71,16 @@ assert.ok(trickyLink.includes("&quot;"));
 assert.ok(trickyLink.includes("&amp;"));
 
 // Translation shape: fixed format plus valid source
-assert.equal(parseTranslationContent({format: RICH_TEXT_FORMAT, source: "# Hi"}).ok, true);
-assert.deepEqual(parseTranslationContent({body: "# Hi"}).errors, ["invalid_format"]);
-assert.deepEqual(parseTranslationContent(null).errors, ["invalid_shape"]);
-assert.deepEqual(parseTranslationContent({format: RICH_TEXT_FORMAT, source: "<b>x</b>"}).errors, ["raw_html"]);
+assert.deepEqual(parseTranslationContent({format: RICH_TEXT_FORMAT, source: "# Hi"}), {ok: true, source: "# Hi"});
+for (const [input, errors] of [
+  [{body: "# Hi"}, ["invalid_format"]],
+  [null, ["invalid_shape"]],
+  [{format: RICH_TEXT_FORMAT, source: "<b>x</b>"}, ["raw_html"]],
+] as const) {
+  const parsed = parseTranslationContent(input);
+  assert.equal(parsed.ok, false);
+  if (!parsed.ok) assert.deepEqual(parsed.errors, errors);
+}
 
 // Publish gating: every required language must be present and valid
 const full = REQUIRED_LOCALES.map((locale) => ({locale, content: {format: RICH_TEXT_FORMAT, source: `# ${locale}`}}));
@@ -88,14 +94,11 @@ assert.deepEqual(
 // Wiring: fixed catalog is the single source of truth, no arbitrary-key endpoint
 const catalogLib = readFileSync(join(root, "src/lib/content-catalog.ts"), "utf8");
 assert.match(catalogLib, /single source of truth/);
-const contentPostPath = join(root, "src/app/api/admin/content/route.ts");
-let contentPostExists = true;
-try {
-  readFileSync(contentPostPath, "utf8");
-} catch {
-  contentPostExists = false;
-}
-assert.equal(contentPostExists, false);
+const contentIndexRoute = readFileSync(join(root, "src/app/api/admin/content/route.ts"), "utf8");
+assert.match(contentIndexRoute, /export async function GET/);
+assert.match(contentIndexRoute, /requireMinistryManager/);
+assert.ok(!contentIndexRoute.includes("export async function POST"));
+assert.ok(!contentIndexRoute.includes("contentBlock.create"));
 
 // Wiring: mutations require session, ministry-manager role and public origin
 for (const routePath of [
@@ -115,15 +118,34 @@ assert.match(publishRoute, /findMissingLocales/);
 assert.match(publishRoute, /incomplete_translations/);
 assert.match(publishRoute, /action: "published"/);
 assert.match(publishRoute, /CONTENT_BLOCK_PUBLISHED/);
+// Publish promotes the five valid drafts explicitly, never live content
+assert.match(publishRoute, /data: \{published:/);
+assert.ok(!publishRoute.includes("updateMany"));
+// Saving writes the draft only; the published version is untouched
 const translationsRoute = readFileSync(join(root, "src/app/api/admin/content/[id]/translations/route.ts"), "utf8");
 assert.match(translationsRoute, /invalid_document/);
 assert.match(translationsRoute, /action: "saved"/);
 assert.match(translationsRoute, /CONTENT_TRANSLATION_SAVED/);
+assert.match(translationsRoute, /update: \{draft\}/);
+assert.ok(!translationsRoute.includes("published:"));
+// Unpublish retires the live version only; drafts and revisions survive
+const unpublishRoute = readFileSync(join(root, "src/app/api/admin/content/[id]/unpublish/route.ts"), "utf8");
+assert.match(unpublishRoute, /published: Prisma\.DbNull/);
+assert.match(unpublishRoute, /CONTENT_BLOCK_UNPUBLISHED/);
+assert.ok(!unpublishRoute.includes("contentRevision.create"));
+assert.ok(!unpublishRoute.includes("deleteMany"));
+// Restore lands on the draft only; publishing stays a later explicit step
 const restoreRoute = readFileSync(join(root, "src/app/api/admin/content/[id]/restore/route.ts"), "utf8");
 assert.match(restoreRoute, /confirmation_required/);
 assert.match(restoreRoute, /unrestorable_revision/);
 assert.match(restoreRoute, /action: "restored"/);
 assert.match(restoreRoute, /CONTENT_REVISION_RESTORED/);
+assert.match(restoreRoute, /update: \{draft\}/);
+assert.ok(!restoreRoute.includes("published:"));
+// Public reads serve the published column only
+const repository = readFileSync(join(root, "src/lib/content/repository.ts"), "utf8");
+assert.match(repository, /select: \{published: true\}/);
+assert.ok(!repository.includes("draft"));
 
 // Wiring: page guards content role, UI covers catalog, preview, missing, revisions
 const contentPage = readFileSync(join(root, "src/app/admin/content/page.tsx"), "utf8");
@@ -135,6 +157,13 @@ assert.match(manager, /Review &amp; publish/);
 assert.match(manager, /dangerouslySetInnerHTML/);
 assert.match(manager, /Revision history/);
 assert.match(manager, /Restore/);
+assert.match(manager, /Published version/);
+assert.match(manager, /\/api\/admin\/content/);
+// Valid React sync: key-remounted editor plus server refresh, no render-time setState
+assert.ok(!manager.includes("useEffect"));
+assert.ok(!manager.includes("initializedFor"));
+assert.match(manager, /key=\{`/);
+assert.match(manager, /setEditorKey/);
 
 // Migration: revision language/action columns plus seeded catalog, legacy-safe
 const migration = readFileSync(join(root, "prisma/migrations/20261016000000_content_editor_workflow/migration.sql"), "utf8");
@@ -142,11 +171,21 @@ assert.match(migration, /ADD COLUMN "locale"/);
 assert.match(migration, /ADD COLUMN "action"/);
 assert.match(migration, /home\.hero/);
 assert.match(migration, /ON CONFLICT \("key"\) DO NOTHING/);
+// Split migration: rename preserves data, published backfilled only for live blocks
+const splitMigration = readFileSync(join(root, "prisma/migrations/20261016010000_content_draft_published_split/migration.sql"), "utf8");
+assert.match(splitMigration, /RENAME COLUMN "content" TO "draft"/);
+assert.match(splitMigration, /ADD COLUMN "published"/);
+assert.match(splitMigration, /b\."status" = 'PUBLISHED'/);
+assert.ok(!splitMigration.toUpperCase().includes("DELETE"));
+assert.ok(!splitMigration.includes("DROP COLUMN"));
 
 console.log("verify-content-editor: all checks passed");
 console.log("  - Fixed catalog with stable keys; no arbitrary-key creation");
 console.log("  - Limited markup (paragraph, headings, bold, italic, links, lists, quotes) with safe HTML output");
 console.log("  - Raw HTML, scripts, iframes and unsafe links rejected and escaped");
+console.log("  - Drafts never touch published content; publish promotes the five valid drafts explicitly");
+console.log("  - Unpublish retires live content only; restore lands on the draft only");
 console.log("  - Publishing blocked until all five languages are present and valid");
 console.log("  - Immutable revisions on save/publish/restore; confirmed restore with audit");
 console.log("  - Session, ministry-manager role and public origin on every mutation");
+console.log("  - UI refreshes from the server with key-remount sync, no render-time setState");

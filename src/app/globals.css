@@ -247,6 +247,7 @@ body.is-admin { padding-top: 0; }
 .content-preview ul { margin: 0 0 .7rem; padding-left: 1.4rem; }
 .content-preview blockquote { margin: 0 0 .7rem; padding: .6rem .9rem; border-left: 3px solid var(--green); background: var(--mist); }
 .content-preview a { color: var(--green); font-weight: 700; }
+.content-preview-published { border-style: double; margin-bottom: .6rem; }
 .content-revisions { margin-top: 1.5rem; }
 .content-revision-preview { display: block; font-size: .85rem; }
 @media (max-width: 760px) {
