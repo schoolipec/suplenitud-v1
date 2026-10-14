@@ -19,3 +19,10 @@ out/
 /.windsurf/
 /skills-lock.json
 /.superpowers/
+
+# Local-only operational documentation
+AGENTS.md
+README.md
+MIGRATION-CHECKPOINT.md
+docs/
+deploy/README.md
