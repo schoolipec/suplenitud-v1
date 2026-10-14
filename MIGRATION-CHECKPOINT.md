@@ -1,7 +1,7 @@
 # Checkpoint de migración Next.js
 
-**Actualizado:** 2026-10-15
-**Rama:** `nextjs-migration` (incluye `af96022`)
+**Actualizado:** 2026-10-16
+**Rama:** `feature/content-editor-workflow` (basada en `origin/nextjs-migration@a46aebf`)
 **Remoto:** `schoolipec/suplenitud-v1`
 
 ## Verificado

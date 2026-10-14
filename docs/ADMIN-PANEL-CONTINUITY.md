@@ -251,6 +251,23 @@ Integrada en `nextjs-migration` mediante `af96022` y publicada únicamente en `h
 - Capturas del dashboard con datos representativos en 1440 y 390: `C:\ProgramandoconClaude\Reportes\IPEC\public-visit-analytics\` (2 archivos). Límite preciso: la página real exige sesión; las capturas usan el mismo componente `VisitsDashboard` con agregados de muestra servido por una ruta temporal pública (eliminada antes de commitear, nunca versionada). El shell público visible en ellas es artefacto de esa ruta temporal; en `/admin/visits` el shell admin oculta header/footer públicos.
 - Pendiente: validación visual autenticada con datos reales y base GeoLite2 montada en el entorno.
 
+## Gestión editorial de contenido (rama; sin desplegar)
+
+Implementada en `feature/content-editor-workflow` (basada en `origin/nextjs-migration@a46aebf`). Sin desplegar; no crear PR hasta autorización. Panel en inglés; sin cambios de roles ni permisos nuevos (SUPER_ADMIN y ADMIN gestionan vía `requireMinistryManager`, el helper ya existente).
+
+### Catálogo y documento seguro
+
+1. **Catálogo fijo** (`src/lib/content-catalog.ts`, única fuente): 8 claves estables (`home.hero`, `home.live`, `home.community`, `home.about`, `home.contact`, `home.vision`, `pastors.intro`, `site.footer`) sembradas por migración con `ON CONFLICT DO NOTHING`. El endpoint de creación arbitraria (`POST /api/admin/content`) fue eliminado; la UI no crea claves.
+2. **Marcado limitado** (`src/lib/content-document.ts`, sin dependencias, reutilizable en cliente y servidor): párrafo, títulos H1–H3, negrita, cursiva, enlaces, listas y citas. HTML crudo, iframes, scripts, URLs `javascript:`/`data:` y atributos arbitrarios se rechazan al validar y se escapan al renderizar (solo existen `p/h1-h3/strong/em/a[rel]/ul/li/blockquote`).
+3. **Traducciones** en `en/es/pt/ko/de` con forma fija `{format: "limited-richtext-v1", source}`; indicador de faltantes por bloque y por pestaña; publicación bloqueada (`incomplete_translations`) hasta completar los cinco idiomas válidos.
+4. **Revisiones inmutables** en cada guardado, publicación y restauración (autor, fecha, idioma, contenido, acción); migración `20261016000000_content_editor_workflow` añade `locale`/`action` (nulables por legado) y siembra el catálogo. Restauración solo con `confirm: true` explícito + auditoría `CONTENT_REVISION_RESTORED`.
+
+### Verificación de esta fase
+
+- `npm run verify:content-editor` (nuevo: catálogo, marcado y sanitización, gating de publicación, revisiones/restauración confirmada, sesión+rol+origen en cada mutación), `prisma:generate`, `lint`, `typecheck`, `build`, `git diff --check`: todo pasa.
+- Capturas del editor con datos representativos en 1440 y 390, claro y oscuro: `C:\ProgramandoconClaude\Reportes\IPEC\content-editor-workflow\` (4 archivos). Límite preciso: la página real exige sesión; las capturas usan el mismo componente `ContentManager` servido por una ruta temporal pública (eliminada antes de commitear, nunca versionada). El header/footer públicos visibles en ellas son artefacto de esa ruta; en `/admin/content` el shell admin los oculta.
+- Pendiente: validación visual autenticada con datos reales; conectar el contenido publicado a las páginas públicas (fase separada: hoy el sitio usa textos estáticos y el editor gestiona el repositorio editorial).
+
 ## Próximas fases, en orden
 
 El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La Fase 1 (Usuarios, Contactos ministeriales y Perfil) está implementada en rama; la siguiente autorizada tras desplegarla es la Fase 2.

@@ -13,7 +13,8 @@
     "verify:admin-users": "tsx scripts/verify-admin-users-api.mts",
     "verify:prayer-contact": "tsx scripts/verify-prayer-contact.mts",
     "verify:invitations": "tsx scripts/verify-invitations.mts",
-    "verify:visit-analytics": "tsx scripts/verify-visit-analytics.mts"
+    "verify:visit-analytics": "tsx scripts/verify-visit-analytics.mts",
+    "verify:content-editor": "tsx scripts/verify-content-editor.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
