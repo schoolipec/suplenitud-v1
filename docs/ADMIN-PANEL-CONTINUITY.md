@@ -222,9 +222,9 @@ Implementada en `feature/admin-experience-and-invitations` (basada en `origin/ne
 - Capturas reales del formulario (simple, contacto, canal directo) en 1440 y 390: `C:\ProgramandoconClaude\Reportes\IPEC\admin-experience-and-invitations\` (6 archivos).
 - Pendiente: validación visual autenticada del panel (requiere sesión real) y prueba de envío SMTP real (requiere credenciales MailCow en el entorno, nunca en Git).
 
-## Analítica pública de visitas (rama; sin desplegar)
+## Analítica pública de visitas (publicada solo en demo)
 
-Implementada en `feature/public-visit-analytics` (basada en `origin/nextjs-migration@2dd5936`). Sin desplegar; no crear PR hasta autorización. Detalle operativo en `docs/ANALYTICS-GEOLOCATION.md`.
+Integrada en `nextjs-migration` mediante `af96022` y publicada únicamente en `https://demo.suplenitud.com/`. La migración `20261015000000_public_visit_analytics` está aplicada en la base aislada; producción no fue modificada. Detalle operativo en `docs/ANALYTICS-GEOLOCATION.md`.
 
 ### Puertas de privacidad (servidor)
 
