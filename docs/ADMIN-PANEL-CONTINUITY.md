@@ -222,6 +222,35 @@ Implementada en `feature/admin-experience-and-invitations` (basada en `origin/ne
 - Capturas reales del formulario (simple, contacto, canal directo) en 1440 y 390: `C:\ProgramandoconClaude\Reportes\IPEC\admin-experience-and-invitations\` (6 archivos).
 - Pendiente: validación visual autenticada del panel (requiere sesión real) y prueba de envío SMTP real (requiere credenciales MailCow en el entorno, nunca en Git).
 
+## Analítica pública de visitas (rama; sin desplegar)
+
+Implementada en `feature/public-visit-analytics` (basada en `origin/nextjs-migration@2dd5936`). Sin desplegar; no crear PR hasta autorización. Detalle operativo en `docs/ANALYTICS-GEOLOCATION.md`.
+
+### Puertas de privacidad (servidor)
+
+1. **Solo visitas públicas:** `isPublicPath` excluye `/admin`, `/api` e `/invite` con o sin prefijo de idioma; el tracker también las omite en cliente, pero el servidor es autoritativo (204 sin persistir).
+2. **Bots conocidos** (crawlers, monitores, agentes de IA) descartados por `User-Agent` con 204.
+3. **Sesiones autenticadas** (cookie Better Auth, administradores incluidos) nunca se cuentan.
+4. **Sin IP persistida:** `X-Forwarded-For` solo se lee con `GEO_TRUST_PROXY_HEADERS=true` (solo detrás de Traefik controlado); la IP vive únicamente en memoria para el lookup y se descarta.
+
+### Geolocalización opcional
+
+1. **MaxMind local:** `GEOIP_DATABASE_PATH` apunta a `GeoLite2-City.mmdb`; sin archivo configurado o ilegible, todo sigue funcionando sin país/estado y `/admin/visits` lo declara explícitamente.
+2. **País para todas las visitas** con origen identificado; **estado/región solo si `countryCode` es `US`**; ciudad y ubicación precisa jamás se devuelven ni se guardan.
+3. **Migración `20261015000000_public_visit_analytics`:** añade `is_public` (default true) y reclasifica históricos `/admin`, `/api`, `/invite` a `false`. Sin borrados; los públicos históricos siguen reportables.
+
+### Reporte `/admin/visits` rediseñado
+
+1. **Rango de fechas** (`?from=&to=`, 30 días por defecto, inversión corregida), page views, sesiones únicas, top páginas, países, estados de EE. UU., idiomas, dispositivos y referrers; todo filtrado por `isPublic`.
+2. **Estado GeoLite visible** en insignia y secciones de geografía; responsive escritorio/móvil.
+3. **Sin retención automática:** requiere política aprobada y documentada antes de implementarse.
+
+### Verificación de esta fase
+
+- `npm run verify:visit-analytics` (nuevo: exclusión admin/API/bots, privacidad IP, confianza proxy, fallback sin GeoLite, país/estado US, filtros y cableado), `prisma:generate`, `lint`, `typecheck`, `build`, `git diff --check`: todo pasa.
+- Capturas del dashboard con datos representativos en 1440 y 390: `C:\ProgramandoconClaude\Reportes\IPEC\public-visit-analytics\` (2 archivos). Límite preciso: la página real exige sesión; las capturas usan el mismo componente `VisitsDashboard` con agregados de muestra servido por una ruta temporal pública (eliminada antes de commitear, nunca versionada). El shell público visible en ellas es artefacto de esa ruta temporal; en `/admin/visits` el shell admin oculta header/footer públicos.
+- Pendiente: validación visual autenticada con datos reales y base GeoLite2 montada en el entorno.
+
 ## Próximas fases, en orden
 
 El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La Fase 1 (Usuarios, Contactos ministeriales y Perfil) está implementada en rama; la siguiente autorizada tras desplegarla es la Fase 2.

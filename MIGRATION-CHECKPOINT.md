@@ -1,7 +1,7 @@
 # Checkpoint de migración Next.js
 
-**Actualizado:** 2026-10-14
-**Rama:** `feature/admin-experience-and-invitations` (basada en `origin/nextjs-migration@4bc6850`)
+**Actualizado:** 2026-10-15
+**Rama:** `feature/public-visit-analytics` (basada en `origin/nextjs-migration@2dd5936`)
 **Remoto:** `schoolipec/suplenitud-v1`
 
 ## Verificado
