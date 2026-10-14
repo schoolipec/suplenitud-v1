@@ -16,14 +16,15 @@ export async function PUT(request: Request, {params}: {params: Promise<{id: stri
   if (!parsed.ok) return NextResponse.json({error: "invalid_document", details: parsed.errors}, {status: 400});
   const block = await prisma.contentBlock.findUnique({where: {id}, select: {id: true, status: true}});
   if (!block) return NextResponse.json({error: "not_found"}, {status: 404});
-  const content = {format: RICH_TEXT_FORMAT, source: parsed.source};
+  // Draft-only write: the published version is never touched here.
+  const draft = {format: RICH_TEXT_FORMAT, source: parsed.source};
   const translation = await prisma.contentTranslation.upsert({
     where: {blockId_locale: {blockId: id, locale: body.locale}},
-    update: {content},
-    create: {blockId: id, locale: body.locale, content},
+    update: {draft},
+    create: {blockId: id, locale: body.locale, draft},
   });
   await prisma.contentRevision.create({
-    data: {blockId: id, locale: body.locale, action: "saved", snapshot: {...content, locale: body.locale, status: block.status}, createdById: actor.id},
+    data: {blockId: id, locale: body.locale, action: "saved", snapshot: {...draft, locale: body.locale, status: block.status}, createdById: actor.id},
   });
   await prisma.auditLog.create({data: {actorUserId: actor.id, action: "CONTENT_TRANSLATION_SAVED", resource: "content_translation", resourceId: translation.id, metadata: {blockId: id, locale: body.locale}}});
   return NextResponse.json(translation);

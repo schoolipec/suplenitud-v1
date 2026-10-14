@@ -23,15 +23,16 @@ export async function POST(request: Request, {params}: {params: Promise<{id: str
   if (!parsed.ok) return NextResponse.json({error: "unrestorable_revision", details: parsed.errors}, {status: 400});
   const block = await prisma.contentBlock.findUnique({where: {id}, select: {id: true, status: true}});
   if (!block) return NextResponse.json({error: "not_found"}, {status: 404});
-  const content = {format: RICH_TEXT_FORMAT, source: parsed.source};
+  // Restore lands on the draft only: published content is unchanged until a later publish.
+  const draft = {format: RICH_TEXT_FORMAT, source: parsed.source};
   const translation = await prisma.contentTranslation.upsert({
     where: {blockId_locale: {blockId: id, locale}},
-    update: {content},
-    create: {blockId: id, locale, content},
+    update: {draft},
+    create: {blockId: id, locale, draft},
   });
   await prisma.contentRevision.create({
-    data: {blockId: id, locale, action: "restored", snapshot: {...content, locale, status: block.status, restoredFrom: revision.id}, createdById: actor.id},
+    data: {blockId: id, locale, action: "restored", snapshot: {...draft, locale, status: block.status, restoredFrom: revision.id}, createdById: actor.id},
   });
   await prisma.auditLog.create({data: {actorUserId: actor.id, action: "CONTENT_REVISION_RESTORED", resource: "content_revision", resourceId: revision.id, metadata: {blockId: id, locale}}});
-  return NextResponse.json(translation);
+  return NextResponse.json({id: translation.id, blockId: id, locale});
 }
