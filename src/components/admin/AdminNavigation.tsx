@@ -41,7 +41,7 @@ export function AdminNavigation({roles}: {roles: string[]}) {
     {href: "/admin/prayer-requests", label: "Prayer requests", icon: IconPray, visible: isSuperOrAdmin},
     {href: "/admin/notifications", label: unreadCount > 0 ? `Notifications (${unreadCount})` : "Notifications", icon: IconBell, visible: isSuperOrAdmin},
     {href: "/admin/ushers", label: "Ushers", icon: IconUsersGroup, visible: isSuperOrAdmin},
-    {href: "/admin/donations", label: "Donations", icon: IconHeartHandshake, visible: isSuperAdmin || roles.includes("TREASURER")},
+    {href: "/admin/donations", label: "Donations", icon: IconHeartHandshake, visible: isSuperAdmin || roles.includes("ADMIN") || roles.includes("TREASURER")},
     {href: "/admin/configs", label: "Settings", icon: IconSettings},
   ].filter((item) => item.visible !== false);
 

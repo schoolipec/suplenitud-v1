@@ -16,6 +16,14 @@ export function canManageDonations(roles: readonly ApplicationRole[]) {
   return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.TREASURER);
 }
 
+export function canViewDonations(roles: readonly ApplicationRole[]) {
+  return (
+    roles.includes(ApplicationRole.SUPER_ADMIN) ||
+    roles.includes(ApplicationRole.ADMIN) ||
+    roles.includes(ApplicationRole.TREASURER)
+  );
+}
+
 export function canViewContent(roles: readonly ApplicationRole[]) {
   return roles.includes(ApplicationRole.SUPER_ADMIN) || roles.includes(ApplicationRole.ADMIN);
 }
