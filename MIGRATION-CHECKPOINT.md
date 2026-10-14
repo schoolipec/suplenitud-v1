@@ -1,7 +1,7 @@
 # Checkpoint de migración Next.js
 
 **Actualizado:** 2026-10-16
-**Rama:** `feature/donations-foundation` (basada en `origin/nextjs-migration@d7608cf`)
+**Rama:** `nextjs-migration` (incluye `3c7b60e`)
 **Remoto:** `schoolipec/suplenitud-v1`
 
 ## Verificado

@@ -187,20 +187,26 @@ assert.match(paypalRoute, /payments_disabled/);
 assert.match(paypalRoute, /not_implemented/);
 const squareRoute = readFileSync(join(root, "src/app/api/webhooks/square/route.ts"), "utf8");
 assert.match(squareRoute, /isSquareConfigured/);
-assert.match(squareRoute, /secrets\.squareWebhookNotificationUrl/);
-assert.match(squareRoute, /x-square-hmacsha256-signature/);
-assert.ok(!squareRoute.includes("request.url"));
-assert.ok(!squareRoute.includes("headers.get(\"host\""));
-assert.ok(!squareRoute.includes("headers.get(\"origin\""));
-assert.match(squareRoute, /invalid_signature/);
-assert.match(squareRoute, /status: 401/);
-assert.match(squareRoute, /duplicate/);
-assert.match(squareRoute, /isUniqueViolation/);
-assert.match(squareRoute, /DONATION_WEBHOOK_PROCESSED/);
-const donationSchema = readFileSync(join(root, "prisma/schema.prisma"), "utf8");
-assert.match(donationSchema, /@@unique\(\[provider, externalId\]\)/);
-assert.ok(squareRoute.indexOf("isSquareConfigured") < squareRoute.indexOf("verifySquareSignature"));
-assert.ok(squareRoute.indexOf("invalid_signature") < squareRoute.indexOf("donationWebhookEvent.create"));
+assert.match(squareRoute, /status: 503/);
+assert.match(squareRoute, /not_implemented/);
+assert.match(squareRoute, /status: 501/);
+// No writes from webhooks in this phase: routes never touch Prisma
+assert.ok(!squareRoute.includes("prisma."));
+assert.ok(!squareRoute.includes("processSquareWebhookEvent"));
+const paypalWiring = readFileSync(join(root, "src/app/api/webhooks/paypal/route.ts"), "utf8");
+assert.ok(!paypalWiring.includes("prisma."));
+// Future processor: single transaction, provider-scoped lookup, duplicate-safe
+const squareService = readFileSync(join(root, "src/lib/payments/square.ts"), "utf8");
+assert.match(squareService, /prisma\.\$transaction/);
+assert.match(squareService, /donationWebhookEvent\.create/);
+assert.match(squareService, /provider: "SQUARE"/);
+assert.match(squareService, /externalReference: input\.paymentId/);
+assert.match(squareService, /canTransitionDonation/);
+assert.match(squareService, /processed: true/);
+assert.match(squareService, /DONATION_WEBHOOK_PROCESSED/);
+assert.match(squareService, /isUniqueViolation/);
+assert.match(squareService, /duplicate: true/);
+assert.equal(squareService.match(/prisma\.\$transaction/g)?.length ?? 0, 1);
 
 // Wiring: admin module uses view permission, shows readiness without secrets
 const donationsPage = readFileSync(join(root, "src/app/admin/donations/page.tsx"), "utf8");
@@ -230,4 +236,4 @@ console.log("  - Readiness labels carry no secrets; roles unchanged, donations v
 console.log("  - COMPLETED reachable only from APPROVED/CONFIRMED via verified webhooks");
 console.log("  - Square HMAC over URL+body accepted/rejected; placeholders never count as credentials");
 console.log("  - Unique violations answer as duplicates, never 500; PayPal unverifiable without credentials");
-console.log("  - Webhook ledger keyed by provider+event; duplicates skipped; invalid signatures rejected pre-write");
+console.log("  - Webhook routes write nothing this phase (503/501); future processor is transactional and duplicate-safe");
