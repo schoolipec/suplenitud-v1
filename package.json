@@ -14,6 +14,7 @@
     "verify:prayer-contact": "tsx scripts/verify-prayer-contact.mts",
     "verify:invitations": "tsx scripts/verify-invitations.mts",
     "verify:visit-analytics": "tsx scripts/verify-visit-analytics.mts",
+    "verify:donations": "tsx scripts/verify-donations.mts",
     "verify:content-editor": "tsx scripts/verify-content-editor.mts"
   },
   "dependencies": {

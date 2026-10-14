@@ -280,6 +280,27 @@ Integrada en `nextjs-migration` mediante `3c7b60e` y publicada únicamente en `h
 - Para reactivarlo se requiere aprobación del nuevo flujo KISS, cambiar esa variable a `true` en el entorno de demo y reconstruir el contenedor. Panel, datos existentes, n8n y APIs administrativas no cambian.
 - Diseño aprobado: `docs/superpowers/specs/2026-10-14-public-prayer-pause-design.md`.
 
+## Base de ofrendas PayPal/Square (rama; sin desplegar)
+
+Implementada en `feature/donations-foundation` (basada en `origin/nextjs-migration`). Sin credenciales, sin cobros, sin despliegue. Detalle operativo en `docs/DONATIONS-INTEGRATION.md`.
+
+### Configuración y modelo
+
+1. **Variables documentadas en `.env.example` sin valores:** `PAYMENTS_ENABLED=false`, `PAYMENTS_MODE=sandbox` y credenciales/IDs de PayPal y Square. Los secretos reales solo van al `.env` del VPS; el panel solo muestra estado (`disabled`, `missing_credentials`, `sandbox_ready`, `live_ready`), nunca valores.
+2. **Migración `20261017000000_donations_foundation` (no destructiva):** estados `APPROVED`, `COMPLETED`, `CANCELLED` (`CONFIRMED` se conserva como legado), columnas `fund` y `reconciled_at`, y tabla `donation_webhook_events` con unicidad `(provider, external_id)`. Filas existentes intactas.
+3. **Sin tarjetas:** no se almacenan tarjetas, CVV, tokens de comprador ni payloads sensibles. `COMPLETED` solo se escribe desde un webhook verificado; ningún callback de navegador puede hacerlo (esa ruta no existe).
+
+### Rutas y panel
+
+1. **Adaptadores inactivos** con interfaz común; `POST /api/donations/checkout` responde 503 desactivado/incompleto y 501 configurado-pero-no-implementado, sin inventar URLs ni llamadas reales.
+2. **Webhooks:** cuerpo crudo preservado, firma verificada antes de persistir (Square HMAC; PayPal exige credenciales y rechaza 503 sin ellas), idempotencia por evento, auditoría mínima, sin envíos externos.
+3. **`/admin/donations` como conciliación:** resumen por estado/proveedor, tabla filtrable, detalle con historial de webhooks y diagnóstico de configuración sin secretos. `TREASURER` ve conciliación; `ADMIN`/`SUPER_ADMIN` ven además el diagnóstico. Responsive a 390 px.
+
+### Verificación de esta fase
+
+- `npm run verify:donations` (nuevo: configuración, permisos, transiciones, idempotencia, firmas, prohibición de completado desde cliente, ausencia de secretos), `prisma:generate`, `lint`, `typecheck`, `build`, `git diff --check`.
+- Nota: tener Square POS no confirma aplicación de desarrollador ni credenciales; debe obtenerse por separado.
+
 ## Próximas fases, en orden
 
 El diseño operativo aprobado y los límites de cada fase se encuentran en `docs/superpowers/specs/2026-10-13-admin-operations-design.md`. La Fase 1 (Usuarios, Contactos ministeriales y Perfil) está implementada en rama; la siguiente autorizada tras desplegarla es la Fase 2.
