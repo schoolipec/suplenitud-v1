@@ -15,7 +15,10 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       NEXT_PUBLIC_SITE_URL: https://demo.suplenitud.com
       GEO_TRUST_PROXY_HEADERS: ${GEO_TRUST_PROXY_HEADERS:-false}
+      GEOIP_DATABASE_PATH: /opt/geoip/GeoLite2-City.mmdb
       PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-false}
+    volumes:
+      - /opt/suplenitud-demo/geoip:/opt/geoip:ro
     networks:
       n8n-internal:
         aliases:
