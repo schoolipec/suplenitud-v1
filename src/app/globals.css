@@ -314,9 +314,25 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
 .prayer-combobox-list button { display: block; width: 100%; padding: .6rem .75rem; border: 0; border-radius: .4rem; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .prayer-combobox-list button:hover { background: var(--mist); }
 .prayer-combobox-empty { padding: .6rem .75rem; color: var(--muted); font-size: .88rem; }
+.prayer-form .prayer-intro { margin: 0 0 1.35rem; color: #d7eaf4; }
+.prayer-form .prayer-submit { width: 100%; margin: .15rem 0 1.25rem; background: var(--lime); color: var(--navy); }
+.prayer-form .prayer-submit:disabled { cursor: wait; opacity: .72; }
+.prayer-contact-actions { padding: 1rem; border-left: 4px solid var(--lime); border-radius: .7rem; background: rgb(255 255 255 / 8%); }
+.prayer-contact-actions > p { margin: 0 0 .8rem; color: #fff; font-weight: 700; }
+.prayer-contact-actions > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.prayer-contact-actions a { display: grid; place-items: center; min-height: 3.25rem; border: 1px solid #79a9c4; border-radius: .6rem; color: #fff; text-decoration: none; transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+.prayer-contact-actions a:hover { border-color: var(--lime); background: #0b3554; transform: translateY(-1px); }
+.prayer-contact-actions a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.prayer-modal-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 1.25rem; background: rgb(2 17 29 / 72%); }
+.prayer-modal { width: min(100%, 33rem); padding: clamp(1.4rem, 5vw, 2.2rem); border: 1px solid var(--lime); border-radius: 1rem; background: var(--navy2); color: #fff; box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 38%); }
+.prayer-modal h4 { margin: 0 0 .75rem; color: var(--lime); font-size: 1.35rem; }
+.prayer-modal p { margin: 0 0 1.3rem; }
+.prayer-modal .button { background: var(--lime); color: var(--navy); }
+.prayer-error { margin: 1rem 0 0; color: #ffd4d4; }
 @media (max-width: 760px) {
   .prayer-type-cards { grid-template-columns: 1fr; }
   .prayer-type-card { min-height: 4.75rem; }
+  .prayer-contact-actions > div { gap: .5rem; }
 }
 
 @media (max-width: 760px) {

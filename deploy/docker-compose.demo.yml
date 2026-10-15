@@ -4,7 +4,7 @@ services:
       context: ..
       dockerfile: Dockerfile
       args:
-        PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-false}
+        PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-true}
     image: suplenitud-demo-nextjs:local
     restart: unless-stopped
     environment:
@@ -16,7 +16,7 @@ services:
       NEXT_PUBLIC_SITE_URL: https://demo.suplenitud.com
       GEO_TRUST_PROXY_HEADERS: ${GEO_TRUST_PROXY_HEADERS:-false}
       GEOIP_DATABASE_PATH: /opt/geoip/GeoLite2-City.mmdb
-      PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-false}
+      PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-true}
     volumes:
       - /opt/suplenitud-demo/geoip:/opt/geoip:ro
     networks:

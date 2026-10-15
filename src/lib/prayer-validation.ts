@@ -59,10 +59,10 @@ export function isValidTimeZone(tz: unknown): boolean {
   }
 }
 
-export const PRAYER_MESSAGE_MAX_LENGTH = 1000;
+export const PRAYER_MESSAGE_MAX_LENGTH = 500;
 
 export function isValidMessage(message: unknown): boolean {
-  return typeof message === "string" && message.trim().length >= 10 && message.trim().length <= PRAYER_MESSAGE_MAX_LENGTH;
+  return typeof message === "string" && message.trim().length >= 1 && message.trim().length <= PRAYER_MESSAGE_MAX_LENGTH;
 }
 
 export function isValidEmail(email: unknown): boolean {
@@ -115,80 +115,13 @@ export function canTransitionTo(from: PrayerRequestStatus, to: PrayerRequestStat
   return transitions[from]?.includes(to) ?? false;
 }
 
-export function validatePrayerRequest(input: {
-  requestType?: unknown;
-  message?: unknown;
-  name?: unknown;
-  email?: unknown;
-  consentToStore?: unknown;
-  consentToContact?: unknown;
-  country?: unknown;
-  contactChannel?: unknown;
-  phone?: unknown;
-  whatsapp?: unknown;
-  timeZone?: unknown;
-  availabilitySlotId?: unknown;
-}): {valid: boolean; errors: string[]} {
+export function validatePrayerRequest(input: {message?: unknown; name?: unknown}): {valid: boolean; errors: string[]} {
   const errors: string[] = [];
-
-  if (!isValidPrayerRequestType(input.requestType)) {
-    errors.push("invalid_request_type");
-  }
-
   if (!isValidMessage(input.message)) {
     errors.push("invalid_message");
   }
-
   if (!isValidName(input.name)) {
     errors.push("invalid_name");
   }
-
-  if (!isValidEmail(input.email)) {
-    errors.push("invalid_email");
-  }
-
-  if (input.consentToStore !== true) {
-    errors.push("consent_to_store_required");
-  }
-
-  if (input.requestType === "PRAYER_AND_CONTACT") {
-    if (input.consentToContact !== true) {
-      errors.push("consent_to_contact_required");
-    }
-
-    if (!isValidContactChannel(input.contactChannel)) {
-      errors.push("invalid_contact_channel");
-    } else if (input.contactChannel === "PHONE") {
-      if (!isValidCountryCode(input.country) || !isDirectContactCountry(input.country)) {
-        errors.push("invalid_country");
-      }
-      if (!isValidPhoneNumber(input.phone)) {
-        errors.push("invalid_phone");
-      }
-    } else {
-      if (
-        input.country !== undefined &&
-        input.country !== null &&
-        input.country !== "" &&
-        !isValidCountryCode(input.country)
-      ) {
-        errors.push("invalid_country");
-      }
-      if (!isValidWhatsAppNumber(input.whatsapp)) {
-        errors.push("invalid_whatsapp");
-      }
-    }
-
-    if (!isValidTimeZone(input.timeZone)) {
-      errors.push("invalid_time_zone");
-    }
-
-    if (input.availabilitySlotId !== undefined && input.availabilitySlotId !== null && input.availabilitySlotId !== "") {
-      if (typeof input.availabilitySlotId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.availabilitySlotId)) {
-        errors.push("invalid_availability_slot");
-      }
-    }
-  }
-
   return {valid: errors.length === 0, errors};
 }
