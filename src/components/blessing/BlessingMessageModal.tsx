@@ -5,6 +5,8 @@ import {Modal} from "@/components/ui/Modal";
 
 type Message = {body: string; reference?: string; title?: string | null};
 const disabledKey = "ipec-blessing-messages-disabled";
+const lastClosedKey = "ipec-blessing-message-last-closed";
+const redisplayDelayMs = 24 * 60 * 60 * 1000;
 const copy = {
   en: {closeLabel:"Close welcome message",disable:"Do not show these blessing messages again",notice:"These messages are words of blessing we share with our visitors. If you opt out, they will not appear on future visits.",close:"Close"},
   es: {closeLabel:"Cerrar mensaje de bienvenida",disable:"No volver a mostrar estos mensajes de bendición",notice:"Estos mensajes son palabras de bendición que compartimos con nuestros visitantes. Si eliges no volver a mostrarlos, no aparecerán en futuras visitas.",close:"Cerrar"},
@@ -19,7 +21,9 @@ export function BlessingMessageModal({locale}: {locale: string}) {
   const [message, setMessage] = useState<Message | null>(null);
 
   useEffect(() => {
-    if (localStorage.getItem(disabledKey) === "true" || sessionStorage.getItem("ipec-blessing-shown")) return;
+    const lastClosedAt = Number(localStorage.getItem(lastClosedKey));
+    const isWithinRedisplayDelay = Number.isFinite(lastClosedAt) && Date.now() - lastClosedAt < redisplayDelayMs;
+    if (localStorage.getItem(disabledKey) === "true" || isWithinRedisplayDelay) return;
     const timer = window.setTimeout(async () => {
       try {
         const response = await fetch(`/api/blessing-message/?locale=${encodeURIComponent(locale)}`, {cache: "no-store"});
@@ -27,7 +31,6 @@ export function BlessingMessageModal({locale}: {locale: string}) {
         const nextMessage = await response.json() as Message;
         if (!nextMessage.body) return;
         setMessage(nextMessage);
-        sessionStorage.setItem("ipec-blessing-shown", "true");
         setOpen(true);
       } catch {
         // Analytics or blessing lookup failures never block browsing.
@@ -38,11 +41,19 @@ export function BlessingMessageModal({locale}: {locale: string}) {
 
   if (!message) return null;
   const t = copy[locale as keyof typeof copy] ?? copy.en;
+  const closeMessage = () => {
+    if (disabled) localStorage.setItem(disabledKey, "true");
+    localStorage.setItem(lastClosedKey, String(Date.now()));
+    setOpen(false);
+  };
 
   return (
     <Modal
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) closeMessage();
+        else setOpen(true);
+      }}
       title={message.title ?? "A word for you"}
       closeLabel={t.closeLabel}
     >
@@ -63,10 +74,7 @@ export function BlessingMessageModal({locale}: {locale: string}) {
         <button
           type="button"
           className="button"
-          onClick={() => {
-            if (disabled) localStorage.setItem(disabledKey, "true");
-            setOpen(false);
-          }}
+          onClick={closeMessage}
         >
           {t.close}
         </button>
