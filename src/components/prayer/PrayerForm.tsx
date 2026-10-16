@@ -54,7 +54,7 @@ export function PrayerForm({locale = "en"}: {locale?: Locale}) {
     <button className="button primary prayer-submit" type="submit" disabled={submitting}>{submitting ? t.submitting : t.submit}</button>
     <section className="prayer-contact-actions" aria-label={t.contactPrompt}><p>{t.contactPrompt}</p><div><a href={`tel:${churchPhone}`} aria-label={t.call} title={t.call}><IconPhone aria-hidden size={25} stroke={2} /></a><a href={`https://wa.me/${churchPhone.slice(1)}?text=${contactMessage}`} target="_blank" rel="noreferrer" aria-label={t.whatsapp} title={t.whatsapp}><IconBrandWhatsapp aria-hidden size={27} stroke={2} /></a><a href={`https://t.me/${churchPhone}?text=${contactMessage}`} target="_blank" rel="noreferrer" aria-label={t.telegram} title={t.telegram}><IconBrandTelegram aria-hidden size={27} stroke={2} /></a></div></section>
     {error ? <p className="form-message prayer-error" role="alert">{t.error}</p> : null}
-    <Modal open={isSuccessOpen} onOpenChange={setIsSuccessOpen} title={t.successTitle} description={t.successText} closeLabel={t.close}>
+    <Modal open={isSuccessOpen} onOpenChange={setIsSuccessOpen} title={t.successTitle} description={t.successText} closeLabel={t.close} showCloseButton={false} dismissable={false}>
       <div className="modal-actions">
         <button className="button primary" type="button" onClick={() => setIsSuccessOpen(false)}>{t.close}</button>
       </div>

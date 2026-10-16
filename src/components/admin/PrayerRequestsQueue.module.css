@@ -1,13 +1,25 @@
+.summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-block: 1.25rem; }
+.summaryCard { display: flex; align-items: baseline; gap: .75rem; padding: 1rem 1.25rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--card); box-shadow: 0 .35rem 1.25rem rgb(8 41 66 / 6%); }
+.summaryCard strong { font-size: 1.9rem; color: var(--ink); line-height: 1.1; }
+.summaryCard span { color: var(--muted); font-weight: 700; }
 .filters { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; margin-block: 1.5rem; }
-.filters label { display: grid; gap: .4rem; min-width: 0; }
-.filters input, .filters select { max-width: 100%; padding: .65rem; border: 1px solid #ccc; border-radius: .5rem; font: inherit; }
-.preview { max-width: 26rem; overflow-wrap: anywhere; }
+.filters label { display: grid; gap: .4rem; min-width: 0; font-weight: 700; font-size: .88rem; }
+.filters input, .filters select { max-width: 100%; padding: .65rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--card); color: var(--ink); font: inherit; }
+.preview { max-width: 26rem; overflow-wrap: anywhere; color: var(--muted); }
 .mobile { display: none; }
-.card { padding: 1rem; border: 1px solid #ddd; border-radius: .75rem; overflow-wrap: anywhere; }
+.card { display: grid; gap: .5rem; padding: 1.1rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--card); }
+.card h3 { margin: 0; color: var(--ink); }
+.card p { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
 .detail { min-width: 0; overflow-wrap: anywhere; }
-.fullMessage { white-space: pre-wrap; line-height: 1.6; margin-block: 1rem; }
+.detail h3 { margin: 0 0 .4rem; color: var(--ink); }
+.detail p { margin: 0; line-height: 1.7; color: var(--ink); }
+.fullMessage { white-space: pre-wrap; line-height: 1.7; margin-block: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--mist); color: var(--ink); overflow-wrap: anywhere; }
+.badgeNew { composes: admin-badge admin-badge-success; }
+.badgePresented { composes: admin-badge admin-badge-muted; }
+.badgeLegacy { composes: admin-badge; }
 @media (max-width: 767px) {
   .desktop { display: none; }
   .mobile { display: grid; gap: 1rem; }
   .filters { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .summary { flex-direction: column; align-items: stretch; }
 }

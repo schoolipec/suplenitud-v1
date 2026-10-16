@@ -148,4 +148,31 @@ const print = readFileSync(join(root, "src/app/admin/prayer-requests/print/page.
 check(() => { assert.match(print, /prayerPageParams\(await searchParams\)/); assert.match(print, /prayerQueueWhere\(parsed.filters, true\)/); assert.ok(!print.includes("referer")); });
 const ui = readFileSync(join(root, "src/components/admin/PrayerRequestsQueue.tsx"), "utf8");
 check(() => { assert.match(ui, /import \{Modal\} from '@\/components\/ui\/Modal'/); assert.match(ui, /onOpenChange=/); assert.ok(!/contactId|assignContact|email|whatsapp/.test(ui)); });
+
+// BLOQUEADOR 2: professional queue styling (theme variables, no #ccc/#ddd)
+const queueCss = readFileSync(join(root, "src/components/admin/PrayerRequestsQueue.module.css"), "utf8");
+check(() => assert.doesNotMatch(queueCss, /#[cd]dc?d?/i));
+check(() => assert.match(queueCss, /--line/));
+check(() => assert.match(queueCss, /--card/));
+check(() => assert.match(queueCss, /--ink/));
+check(() => assert.match(queueCss, /--muted/));
+check(() => assert.match(queueCss, /--mist/));
+check(() => assert.match(queueCss, /\.summary/));
+check(() => assert.match(queueCss, /\.summaryCard/));
+check(() => assert.match(queueCss, /admin-badge-success/));
+check(() => assert.match(queueCss, /admin-badge-muted/));
+check(() => assert.match(queueCss, /max-width: 767px|@media \(max-width: 767px\)/));
+
+// BLOQUEADOR 1 (part 2): success modal blocked from Escape/overlay/X; no fixed modal IDs
+const formSource = readFileSync(join(root, "src/components/prayer/PrayerForm.tsx"), "utf8");
+check(() => assert.match(formSource, /showCloseButton=\{false\}/));
+check(() => assert.match(formSource, /dismissable=\{false\}/));
+check(() => assert.doesNotMatch(formSource, /modal-title|modal-description/));
+const modalSource = readFileSync(join(root, "src/components/ui/Modal.tsx"), "utf8");
+check(() => assert.match(modalSource, /showCloseButton\?: boolean/));
+check(() => assert.match(modalSource, /dismissable\?: boolean/));
+check(() => assert.match(modalSource, /onEscapeKeyDown/));
+check(() => assert.match(modalSource, /onPointerDownOutside/));
+check(() => assert.doesNotMatch(modalSource, /useEffect/));
+check(() => assert.doesNotMatch(modalSource, /id="modal-title"|id="modal-description"/));
 console.log(`verify-prayer-queue: ${checks} checks passed (filters, privacy, real handlers, authorization/origin gates, transitions, audit rollback, race conflict, CSV, print and modal wiring).`);

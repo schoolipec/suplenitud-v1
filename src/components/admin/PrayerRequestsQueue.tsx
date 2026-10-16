@@ -79,15 +79,20 @@ export function PrayerRequestsQueue({initialRequests, initialNewCount, initialFi
 
   return <div className="admin-prayer-requests">
     <section className="admin-section" aria-busy={disabled}>
+      <div className={styles.summary}>
+        <div className={styles.summaryCard} aria-live="polite">
+          <strong>{newCount}</strong>
+          <span>Nuevas en la cola</span>
+        </div>
+      </div>
       <div className="admin-section-heading">
-        <div><h2>Peticiones de oración</h2><p aria-live="polite">Nuevas en la cola: <strong>{newCount}</strong></p></div>
+        <div><h2>Peticiones de oración</h2><p>Exportación e impresión incluyen solo peticiones nuevas y presentadas. Fechas en UTC.</p></div>
         <div className="admin-section-actions">
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={applyFilters}>Actualizar</button>
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/api/admin/prayer-requests/export?${params}`, "_blank", "noopener,noreferrer")}>Exportar CSV</button>
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/admin/prayer-requests/print?${params}`, "_blank", "noopener,noreferrer")}>Vista de impresión</button>
         </div>
       </div>
-      <p>Exportación e impresión incluyen solo peticiones nuevas y presentadas. Fechas en UTC.</p>
       {message && <p className="admin-status-message" role="status">{message}</p>}
       <form className={styles.filters} onSubmit={(event) => {event.preventDefault(); void applyFilters();}}>
         <label>Buscar<input type="search" maxLength={200} placeholder="Nombre o petición" value={filters.search} disabled={disabled} onChange={(e) => setFilters({...filters, search: e.target.value})} /></label>
@@ -104,11 +109,11 @@ export function PrayerRequestsQueue({initialRequests, initialNewCount, initialFi
           <thead><tr><th>Nombre</th><th>Petición</th><th>Estado</th><th>Fecha (UTC)</th><th>Acciones</th></tr></thead>
           <tbody>{requests.map((request) => <tr key={request.id}>
             <td>{request.name}</td><td className={styles.preview}>{request.message.slice(0, 120)}{request.message.length > 120 ? "…" : ""}</td>
-            <td><span className="admin-badge">{prayerStatusLabel(request)}</span></td><td>{request.createdAt.slice(0, 10)}</td><td>{actions(request)}</td>
+            <td><span className={`admin-badge ${request.status === "NEW" ? "admin-badge-success" : prayerStatusLabel(request) === "Presentada" ? "admin-badge-muted" : ""}`}>{prayerStatusLabel(request)}</span></td><td>{request.createdAt.slice(0, 10)}</td><td>{actions(request)}</td>
           </tr>)}</tbody>
         </table></div>
         <div className={styles.mobile}>{requests.map((request) => <article className={styles.card} key={request.id}>
-          <h3>{request.name}</h3><span className="admin-badge">{prayerStatusLabel(request)}</span>
+          <h3>{request.name}</h3><span className={`admin-badge ${request.status === "NEW" ? "admin-badge-success" : prayerStatusLabel(request) === "Presentada" ? "admin-badge-muted" : ""}`}>{prayerStatusLabel(request)}</span>
           <p>{request.message.slice(0, 120)}{request.message.length > 120 ? "…" : ""}</p><p><time dateTime={request.createdAt}>{request.createdAt.slice(0, 10)} (UTC)</time></p>{actions(request)}
         </article>)}</div>
       </>}
