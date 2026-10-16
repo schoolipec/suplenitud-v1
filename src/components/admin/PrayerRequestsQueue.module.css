@@ -1,0 +1,13 @@
+.filters { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; margin-block: 1.5rem; }
+.filters label { display: grid; gap: .4rem; min-width: 0; }
+.filters input, .filters select { max-width: 100%; padding: .65rem; border: 1px solid #ccc; border-radius: .5rem; font: inherit; }
+.preview { max-width: 26rem; overflow-wrap: anywhere; }
+.mobile { display: none; }
+.card { padding: 1rem; border: 1px solid #ddd; border-radius: .75rem; overflow-wrap: anywhere; }
+.detail { min-width: 0; overflow-wrap: anywhere; }
+.fullMessage { white-space: pre-wrap; line-height: 1.6; margin-block: 1rem; }
+@media (max-width: 767px) {
+  .desktop { display: none; }
+  .mobile { display: grid; gap: 1rem; }
+  .filters { display: grid; grid-template-columns: minmax(0, 1fr); }
+}

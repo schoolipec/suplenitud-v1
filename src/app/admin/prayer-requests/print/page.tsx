@@ -3,11 +3,12 @@ import {redirect} from "next/navigation";
 import {auth} from "@/lib/auth";
 import {canViewPrayerRequests} from "@/lib/access";
 import {prisma} from "@/lib/db/client";
+import {parsePrayerFilters, prayerPageParams, prayerQueueWhere, prayerStatusLabel, PRAYER_QUEUE_SELECT} from "@/lib/prayer-queue";
 
 export const instant = false;
 export const metadata = {title: "Print prayer requests | Iglesia Plenitud en Cristo"};
 
-export default async function PrintPrayerRequestsPage() {
+export default async function PrintPrayerRequestsPage({searchParams}: {searchParams: Promise<Record<string, string | string[] | undefined>>}) {
   const session = await auth.api.getSession({headers: await headers()});
   if (!session?.user) redirect("/admin/sign-in");
   const user = await prisma.user.findUnique({
@@ -19,57 +20,37 @@ export default async function PrintPrayerRequestsPage() {
   const roles = user.roles.map(({role}) => role);
   if (!canViewPrayerRequests(roles)) redirect("/admin/sign-in?error=unauthorized");
 
-  const url = new URL((await headers()).get("referer") || "http://localhost/admin/prayer-requests/print");
-  const dateFrom = url.searchParams.get("dateFrom");
-  const dateTo = url.searchParams.get("dateTo");
-
-  const where: Record<string, unknown> = {requestType: "PRAYER_ONLY"};
-
-  if (dateFrom || dateTo) {
-    where.createdAt = {};
-    if (dateFrom) {
-      (where.createdAt as Record<string, Date>).gte = new Date(dateFrom);
-    }
-    if (dateTo) {
-      (where.createdAt as Record<string, Date>).lte = new Date(dateTo);
-    }
-  }
-
+  const parsed = parsePrayerFilters(prayerPageParams(await searchParams));
+  if (!parsed.ok) return <main className="print-page"><p role="alert">Filtros inválidos. Revisa el estado, la búsqueda y las fechas.</p></main>;
   const requests = await prisma.prayerRequest.findMany({
-    where,
-    orderBy: {createdAt: "desc"},
-    select: {
-      id: true,
-      createdAt: true,
-      name: true,
-      message: true,
-      status: true,
-    },
+    where: prayerQueueWhere(parsed.filters, true),
+    orderBy: [{createdAt: "desc"}, {id: "desc"}],
+    select: PRAYER_QUEUE_SELECT,
   });
 
-  const generatedAt = new Date().toLocaleString("en-US", {dateStyle: "full", timeStyle: "short"});
+  const generatedAt = new Date().toLocaleString("es-US", {dateStyle: "full", timeStyle: "short", timeZone: "America/Los_Angeles"});
 
   return (
     <main className="print-page">
       <header className="print-header">
-        <h1>Prayer Requests — Pastoral Use</h1>
-        <p>Generated: {generatedAt}</p>
-        <p className="print-notice">For collective pastoral use. Do not distribute.</p>
+        <h1>Peticiones de oración — Uso pastoral</h1>
+        <p>Generado: {generatedAt}</p>
+        <p className="print-notice">Para uso pastoral colectivo. No distribuir. Se excluyen registros históricos.</p>
       </header>
 
       {requests.length === 0 ? (
-        <p className="print-empty">No prayer requests found for the selected period.</p>
+        <p className="print-empty">No hay peticiones con los filtros seleccionados.</p>
       ) : (
         <div className="print-list">
           {requests.map((request) => (
             <article key={request.id} className="print-item">
               <header>
                 <h2>{request.name}</h2>
-                <time>{new Date(request.createdAt).toLocaleDateString("en-US", {dateStyle: "medium"})}</time>
+                <time>{request.createdAt.toISOString().slice(0, 10)} (UTC)</time>
               </header>
-              <p>{request.message}</p>
+              <p style={{whiteSpace: "pre-wrap", overflowWrap: "anywhere"}}>{request.message}</p>
               <footer>
-                <span>Status: {request.status}</span>
+                <span>Estado: {prayerStatusLabel(request)}</span>
               </footer>
             </article>
           ))}
@@ -77,7 +58,7 @@ export default async function PrintPrayerRequestsPage() {
       )}
 
       <footer className="print-footer">
-        <p>Iglesia Plenitud en Cristo — Internal pastoral document</p>
+        <p>Iglesia Plenitud en Cristo — Documento pastoral interno</p>
       </footer>
     </main>
   );

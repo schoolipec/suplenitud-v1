@@ -377,3 +377,27 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   .admin-profile-identity { flex-wrap: wrap; }
   .admin-profile-identity .admin-icon-button { margin-left: 0; }
 }
+
+/* Reusable accessible modal (Radix Dialog) — above header, drawer and nav */
+.modal-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 1.25rem; background: rgb(2 17 29 / 72%); animation: modal-fade-in .18s ease; }
+.modal-content { width: min(100%, 33rem); max-height: calc(100vh - 2.5rem); overflow-y: auto; padding: clamp(1.4rem, 5vw, 2.2rem); border: 1px solid var(--lime); border-radius: 1rem; background: var(--navy2); color: #fff; box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 38%); animation: modal-zoom-in .18s ease; }
+.modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }
+.modal-title { margin: 0; color: var(--lime); font-size: 1.35rem; line-height: 1.25; }
+.modal-close { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex-shrink: 0; padding: 0; border: 1px solid rgb(255 255 255 / 30%); border-radius: .5rem; background: transparent; color: #fff; cursor: pointer; }
+.modal-close:hover { background: rgb(255 255 255 / 12%); }
+.modal-close:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.modal-description { margin: 0 0 1rem; color: #d7ecf7; font-size: .95rem; }
+.modal-body { display: grid; gap: 1rem; }
+.modal-body h3 { margin: 0; color: var(--lime); font-size: 1.15rem; }
+.modal-body p { margin: 0; line-height: 1.6; }
+.modal-body .modal-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .5rem; }
+.modal-body .button { background: var(--lime); color: var(--navy); }
+@keyframes modal-fade-in { from { opacity: 0; } }
+@keyframes modal-zoom-in { from { opacity: 0; transform: scale(.96) translateY(.5rem); } }
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay, .modal-content { animation: none; }
+}
+@media (max-width: 760px) {
+  .modal-overlay { padding: .85rem; align-items: flex-end; }
+  .modal-content { width: 100%; max-height: calc(100vh - 1.7rem); border-radius: 1rem 1rem 0 0; }
+}

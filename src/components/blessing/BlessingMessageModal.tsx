@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useState} from "react";
+import {Modal} from "@/components/ui/Modal";
 
 type Message = {body: string; reference?: string; title?: string | null};
 const disabledKey = "ipec-blessing-messages-disabled";
@@ -13,9 +14,57 @@ const copy = {
 } as const;
 
 export function BlessingMessageModal({locale}: {locale: string}) {
-  const [open, setOpen] = useState(false); const [disabled, setDisabled] = useState(false); const [message, setMessage] = useState<Message | null>(null);
-  useEffect(() => { if (localStorage.getItem(disabledKey) === "true" || sessionStorage.getItem("ipec-blessing-shown")) return; const timer = window.setTimeout(async () => {try {const response = await fetch(`/api/blessing-message/?locale=${encodeURIComponent(locale)}`, {cache:"no-store"}); if (!response.ok) return; const nextMessage = await response.json() as Message; if (!nextMessage.body) return; setMessage(nextMessage); sessionStorage.setItem("ipec-blessing-shown", "true"); setOpen(true)} catch {}}, 30000); return () => window.clearTimeout(timer); }, [locale]);
-  if (!open || !message) return null;
+  const [open, setOpen] = useState(false);
+  const [disabled, setDisabled] = useState(false);
+  const [message, setMessage] = useState<Message | null>(null);
+
+  useEffect(() => {
+    if (localStorage.getItem(disabledKey) === "true" || sessionStorage.getItem("ipec-blessing-shown")) return;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/blessing-message/?locale=${encodeURIComponent(locale)}`, {cache: "no-store"});
+        if (!response.ok) return;
+        const nextMessage = await response.json() as Message;
+        if (!nextMessage.body) return;
+        setMessage(nextMessage);
+        sessionStorage.setItem("ipec-blessing-shown", "true");
+        setOpen(true);
+      } catch {
+        // Analytics or blessing lookup failures never block browsing.
+      }
+    }, 30000);
+    return () => window.clearTimeout(timer);
+  }, [locale]);
+
+  if (!message) return null;
   const t = copy[locale as keyof typeof copy] ?? copy.en;
-  return <dialog open id="welcome-modal"><button className="modal-close" aria-label={t.closeLabel} onClick={() => setOpen(false)}>×</button><p className="eyebrow">{message.title ?? "A word for you"}</p><blockquote>{message.body}</blockquote>{message.reference && <p>{message.reference}</p>}<label><input type="checkbox" checked={disabled} onChange={(event) => setDisabled(event.target.checked)} /> {t.disable}</label><p>{t.notice}</p><button type="button" onClick={() => {if (disabled) localStorage.setItem(disabledKey, "true"); setOpen(false)}}>{t.close}</button></dialog>;
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={setOpen}
+      title={message.title ?? "A word for you"}
+      description={t.notice}
+      closeLabel={t.closeLabel}
+    >
+      <blockquote style={{margin:0, fontSize:"1.15rem", lineHeight:1.6}}>{message.body}</blockquote>
+      {message.reference ? <p style={{color:"#d7ecf7"}}>{message.reference}</p> : null}
+      <label style={{display:"flex", alignItems:"flex-start", gap:".6rem", fontWeight:600}}>
+        <input type="checkbox" checked={disabled} onChange={(event) => setDisabled(event.target.checked)} />
+        <span>{t.disable}</span>
+      </label>
+      <div className="modal-actions">
+        <button
+          type="button"
+          className="button"
+          onClick={() => {
+            if (disabled) localStorage.setItem(disabledKey, "true");
+            setOpen(false);
+          }}
+        >
+          {t.close}
+        </button>
+      </div>
+    </Modal>
+  );
 }
