@@ -12,6 +12,7 @@
     "admin:bootstrap": "tsx scripts/bootstrap-superadmin.mts",
     "verify:admin-users": "tsx scripts/verify-admin-users-api.mts",
     "verify:prayer-contact": "tsx scripts/verify-prayer-contact.mts",
+    "verify:prayer-queue": "tsx scripts/verify-prayer-queue.mts",
     "verify:invitations": "tsx scripts/verify-invitations.mts",
     "verify:visit-analytics": "tsx scripts/verify-visit-analytics.mts",
     "verify:donations": "tsx scripts/verify-donations.mts",
