@@ -392,6 +392,16 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
 .modal-body p { margin: 0; line-height: 1.6; }
 .modal-body .modal-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .5rem; }
 .modal-body .button { background: var(--lime); color: var(--navy); }
+.blessing-message { display: grid; gap: .55rem; }
+.blessing-message blockquote { margin: 0; font-size: 1.15rem; font-weight: 650; line-height: 1.6; }
+.blessing-message p { color: #d7ecf7; font-size: .95rem; font-style: italic; }
+.blessing-opt-out { display: flex; align-items: center; gap: .7rem; width: fit-content; color: #fff; cursor: pointer; font-size: .92rem; font-weight: 700; line-height: 1.35; }
+.blessing-opt-out input { appearance: none; display: grid; place-content: center; width: 1.15rem; height: 1.15rem; margin: 0; flex: 0 0 1.15rem; border: 2px solid #d7ecf7; border-radius: .25rem; background: transparent; cursor: pointer; }
+.blessing-opt-out input::before { content: ""; width: .58rem; height: .32rem; border-bottom: 2px solid var(--navy); border-left: 2px solid var(--navy); transform: rotate(-45deg) scale(0); transition: transform .12s ease-in-out; }
+.blessing-opt-out input:checked { border-color: var(--lime); background: var(--lime); }
+.blessing-opt-out input:checked::before { transform: rotate(-45deg) scale(1); }
+.blessing-opt-out input:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.blessing-opt-out-notice { padding: .7rem .85rem; border-left: 3px solid var(--lime); border-radius: 0 .45rem .45rem 0; background: rgb(255 255 255 / 8%); color: #d7ecf7; font-size: .86rem; font-style: italic; line-height: 1.5; }
 @keyframes modal-fade-in { from { opacity: 0; } }
 @keyframes modal-zoom-in { from { opacity: 0; transform: scale(.96) translateY(.5rem); } }
 @media (prefers-reduced-motion: reduce) {

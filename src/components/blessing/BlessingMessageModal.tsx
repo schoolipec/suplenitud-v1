@@ -44,15 +44,21 @@ export function BlessingMessageModal({locale}: {locale: string}) {
       open={open}
       onOpenChange={setOpen}
       title={message.title ?? "A word for you"}
-      description={t.notice}
       closeLabel={t.closeLabel}
     >
-      <blockquote style={{margin:0, fontSize:"1.15rem", lineHeight:1.6}}>{message.body}</blockquote>
-      {message.reference ? <p style={{color:"#d7ecf7"}}>{message.reference}</p> : null}
-      <label style={{display:"flex", alignItems:"flex-start", gap:".6rem", fontWeight:600}}>
-        <input type="checkbox" checked={disabled} onChange={(event) => setDisabled(event.target.checked)} />
+      <div className="blessing-message">
+        <blockquote>{message.body}</blockquote>
+        {message.reference ? <p>{message.reference}</p> : null}
+      </div>
+      <label className="blessing-opt-out">
+        <input
+          type="checkbox"
+          checked={disabled}
+          onChange={(event) => setDisabled(event.target.checked)}
+        />
         <span>{t.disable}</span>
       </label>
+      {disabled ? <p className="blessing-opt-out-notice">{t.notice}</p> : null}
       <div className="modal-actions">
         <button
           type="button"
