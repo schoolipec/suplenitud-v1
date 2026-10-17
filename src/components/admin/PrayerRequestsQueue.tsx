@@ -90,6 +90,7 @@ export function PrayerRequestsQueue({initialRequests, initialNewCount, initialFi
         <div className="admin-section-actions">
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={applyFilters}>Actualizar</button>
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/api/admin/prayer-requests/export?${params}`, "_blank", "noopener,noreferrer")}>Exportar CSV</button>
+          <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/api/admin/prayer-requests/export-quelea?${params}`, "_blank", "noopener,noreferrer")}>Exportar PDF para Quelea</button>
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/admin/prayer-requests/print?${params}`, "_blank", "noopener,noreferrer")}>Vista de impresión</button>
         </div>
       </div>
