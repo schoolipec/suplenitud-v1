@@ -33,6 +33,8 @@ export async function GET(request: Request) {
       createdAt: true,
       active: true,
       twoFactorEnabled: true,
+      prayerTelegramAlertsEnabled: true,
+      prayerEmailCopiesEnabled: true,
       roles: {select: {role: true}},
       sessions: {select: {updatedAt: true}, orderBy: {updatedAt: "desc"}, take: 1},
       invitations: {

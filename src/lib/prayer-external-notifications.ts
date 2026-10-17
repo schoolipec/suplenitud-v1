@@ -3,7 +3,10 @@ export type PrayerExternalNotificationInput = {
   name: string;
   message: string;
   createdAt: Date;
-  telegramChatId: string | null;
+  telegramChatId?: string | null;
+  telegramChatIds?: string[];
+  emailCopyRecipients?: string[];
+  adminUrl?: string | null;
 };
 
 type PrayerWebhookConfig = {
@@ -53,7 +56,10 @@ export async function notifyPrayerDelivery(
         name: input.name,
         message: input.message,
         createdAt: input.createdAt.toISOString(),
-        telegramChatId: configuredText(input.telegramChatId) || null,
+        telegramChatIds: input.telegramChatIds ?? (configuredText(input.telegramChatId) ? [configuredText(input.telegramChatId)] : []),
+        telegramChatId: configuredText(input.telegramChatId) || input.telegramChatIds?.[0] || null,
+        emailCopyRecipients: input.emailCopyRecipients ?? [],
+        adminUrl: input.adminUrl ?? null,
       }),
       signal: AbortSignal.timeout(2_500),
     });

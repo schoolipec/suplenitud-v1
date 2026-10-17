@@ -392,6 +392,13 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
 .modal-body p { margin: 0; line-height: 1.6; }
 .modal-body .modal-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .5rem; }
 .modal-body .button { background: var(--lime); color: var(--navy); }
+.admin-alert-preferences { display: grid; gap: 1rem; padding-block: .5rem; }
+.admin-alert-toggle { display: flex; align-items: flex-start; gap: .9rem; padding: 1rem; border: 1px solid var(--line); border-radius: .8rem; background: var(--card); cursor: pointer; }
+.admin-alert-toggle:hover { background: var(--mist); }
+.admin-alert-toggle:focus-within { outline: 2px solid var(--green); outline-offset: 2px; }
+.admin-alert-toggle input[type="checkbox"] { flex: 0 0 auto; width: 1.35rem; height: 1.35rem; margin-top: .15rem; accent-color: var(--green); }
+.admin-alert-toggle strong { display: block; color: var(--ink); font-size: .95rem; }
+.admin-alert-toggle small { display: block; margin-top: .25rem; color: var(--muted); font-size: .85rem; line-height: 1.5; }
 .blessing-message { display: grid; gap: .55rem; }
 .blessing-message blockquote { margin: 0; font-size: 1.15rem; font-weight: 650; line-height: 1.6; }
 .blessing-message p { color: #d7ecf7; font-size: .95rem; font-style: italic; }

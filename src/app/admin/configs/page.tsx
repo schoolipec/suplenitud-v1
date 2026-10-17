@@ -24,6 +24,8 @@ export default async function ConfigsPage() {
       twoFactorEnabled: true,
       active: true,
       mustChangePassword: true,
+      prayerTelegramAlertsEnabled: true,
+      prayerEmailCopiesEnabled: true,
       roles: {select: {role: true}},
       notificationPreference: true,
     },
@@ -52,6 +54,8 @@ export default async function ConfigsPage() {
             telegramChatId: user.telegramChatId,
             twoFactorEnabled: user.twoFactorEnabled,
             roles,
+            prayerTelegramAlertsEnabled: user.prayerTelegramAlertsEnabled,
+            prayerEmailCopiesEnabled: user.prayerEmailCopiesEnabled,
           }}
         />
         <NotificationSettings initialPreferences={notificationPreferences} />
