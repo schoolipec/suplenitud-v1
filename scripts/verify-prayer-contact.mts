@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {join} from "node:path";
 import {PRAYER_MESSAGE_MAX_LENGTH, isValidMessage, isValidName, validatePrayerRequest} from "../src/lib/prayer-validation";
+import {getPrayerWebhookConfig, notifyPrayerDelivery} from "../src/lib/prayer-external-notifications";
 
 const root = join(import.meta.dirname, "..");
 const source = (path: string) => readFileSync(join(root, path), "utf8");
@@ -16,6 +17,41 @@ assert.equal(isValidName("Ana"), true);
 assert.deepEqual(validatePrayerRequest({name: "Ana", message: "Please pray."}), {valid: true, errors: []});
 assert.equal(validatePrayerRequest({name: "Ana", message: "x".repeat(501)}).valid, false);
 assert.equal(validatePrayerRequest({name: "A", message: "Please pray."}).valid, false);
+
+assert.equal(getPrayerWebhookConfig({}), null);
+assert.equal(getPrayerWebhookConfig({PRAYER_NOTIFICATION_WEBHOOK_URL: "http://workflow.example.test/hook", PRAYER_NOTIFICATION_WEBHOOK_SECRET: "secret"}), null);
+assert.deepEqual(
+  getPrayerWebhookConfig({PRAYER_NOTIFICATION_WEBHOOK_URL: "https://workflow.example.test/hook", PRAYER_NOTIFICATION_WEBHOOK_SECRET: " secret "}),
+  {url: "https://workflow.example.test/hook", secret: "secret"},
+);
+let deliveredUrl = "";
+let deliveredInit: RequestInit | undefined;
+const delivered = await notifyPrayerDelivery(
+  {
+    id: "request-id",
+    name: "Ana",
+    message: "Please pray.",
+    createdAt: new Date("2026-10-16T12:00:00.000Z"),
+    telegramChatId: "123456",
+  },
+  {PRAYER_NOTIFICATION_WEBHOOK_URL: "https://workflow.example.test/hook", PRAYER_NOTIFICATION_WEBHOOK_SECRET: "secret"},
+  async (url, init) => {
+    deliveredUrl = String(url);
+    deliveredInit = init;
+    return new Response(null, {status: 202});
+  },
+);
+assert.equal(delivered, true);
+assert.equal(deliveredUrl, "https://workflow.example.test/hook");
+assert.equal((deliveredInit?.headers as Record<string, string>)["x-ipec-prayer-secret"], "secret");
+assert.match(String(deliveredInit?.body), /"telegramChatId":"123456"/);
+assert.equal(
+  await notifyPrayerDelivery(
+    {id: "request-id", name: "Ana", message: "Please pray.", createdAt: new Date(), telegramChatId: null},
+    {},
+  ),
+  false,
+);
 
 const form = source("src/components/prayer/PrayerForm.tsx");
 assert.match(form, /PRAYER_MESSAGE_MAX_LENGTH = 500/);
@@ -49,6 +85,8 @@ assert.match(route, /publicPrayerRequestsEnabled/);
 assert.match(route, /requestType: "PRAYER_ONLY"/);
 assert.match(route, /consentToContact: false/);
 assert.match(route, /notifyAdmins\(\{type: "NEW_PRAYER_REQUEST"/);
+assert.match(route, /notifyPrayerDelivery/);
+assert.match(route, /telegramChatId: superAdmin\?\.telegramChatId \?\? null/);
 assert.doesNotMatch(route, /availabilitySlotId/);
 assert.doesNotMatch(route, /phone:/);
 assert.doesNotMatch(route, /whatsapp:/);
