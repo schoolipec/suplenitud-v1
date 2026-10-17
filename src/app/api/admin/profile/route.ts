@@ -10,7 +10,7 @@ export async function PATCH(request: Request) {
   const body: unknown = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({error: "invalid_request"}, {status: 400});
   const payload = body as Record<string, unknown>;
-  const data: {name?: string; phone?: string | null; whatsapp?: string | null; telegramChatId?: string | null} = {};
+  const data: {name?: string; phone?: string | null; whatsapp?: string | null; telegramChatId?: string | null; prayerTelegramAlertsEnabled?: boolean; prayerEmailCopiesEnabled?: boolean} = {};
   const name = payload.name;
   if (name !== undefined) {
     if (typeof name !== "string" || name.trim().length < 2) return NextResponse.json({error: "invalid_profile"}, {status: 400});
@@ -26,6 +26,12 @@ export async function PATCH(request: Request) {
     } else {
       return NextResponse.json({error: "invalid_profile"}, {status: 400});
     }
+  }
+  for (const field of ["prayerTelegramAlertsEnabled", "prayerEmailCopiesEnabled"] as const) {
+    const value = payload[field];
+    if (value === undefined) continue;
+    if (typeof value !== "boolean") return NextResponse.json({error: "invalid_profile"}, {status: 400});
+    data[field] = value;
   }
   if (Object.keys(data).length === 0) return NextResponse.json({error: "no_changes"}, {status: 400});
   await prisma.user.update({where: {id: session.user.id}, data});

@@ -88,6 +88,8 @@ model User {
   whatsapp           String?
   telegramChatId     String?
   active             Boolean   @default(true)
+  prayerTelegramAlertsEnabled Boolean @default(false) @map("prayer_telegram_alerts_enabled")
+  prayerEmailCopiesEnabled    Boolean @default(false) @map("prayer_email_copies_enabled")
   sessions           Session[]
   accounts           Account[]
   roles              UserRole[]

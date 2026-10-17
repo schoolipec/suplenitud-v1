@@ -2,7 +2,7 @@
 
 import {FormEvent, useState} from "react";
 import Link from "next/link";
-import {IconCheck, IconLock, IconMail, IconPencil, IconPhone, IconSend, IconShieldCheck} from "@tabler/icons-react";
+import {IconBell, IconCheck, IconLock, IconMail, IconPencil, IconPhone, IconSend, IconShieldCheck} from "@tabler/icons-react";
 
 type Profile = {
   name: string;
@@ -12,6 +12,8 @@ type Profile = {
   telegramChatId: string | null;
   twoFactorEnabled: boolean;
   roles: string[];
+  prayerTelegramAlertsEnabled: boolean;
+  prayerEmailCopiesEnabled: boolean;
 };
 
 const roleLabels: Record<string, string> = {
@@ -35,6 +37,8 @@ export function ProfileSettings({profile}: {profile: Profile}) {
   const [phone, setPhone] = useState(profile.phone ?? "");
   const [whatsapp, setWhatsapp] = useState(profile.whatsapp ?? "");
   const [telegramChatId, setTelegramChatId] = useState(profile.telegramChatId ?? "");
+  const [prayerTelegramAlertsEnabled, setPrayerTelegramAlertsEnabled] = useState(profile.prayerTelegramAlertsEnabled);
+  const [prayerEmailCopiesEnabled, setPrayerEmailCopiesEnabled] = useState(profile.prayerEmailCopiesEnabled);
   const [editing, setEditing] = useState<"identity" | "contact" | "channels" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -90,6 +94,25 @@ export function ProfileSettings({profile}: {profile: Profile}) {
     setTelegramChatId(nextTelegram);
     setEditing(null);
     setMessage("Authorized channel saved.");
+  }
+
+  async function toggleAlert(preference: "telegram" | "email") {
+    setMessage(null);
+    setSaving(true);
+    const next = preference === "telegram" ? !prayerTelegramAlertsEnabled : !prayerEmailCopiesEnabled;
+    const ok = await saveProfile({
+      name,
+      prayerTelegramAlertsEnabled: preference === "telegram" ? next : prayerTelegramAlertsEnabled,
+      prayerEmailCopiesEnabled: preference === "email" ? next : prayerEmailCopiesEnabled,
+    });
+    setSaving(false);
+    if (!ok) {
+      setMessage("The preference could not be saved. Try again.");
+      return;
+    }
+    if (preference === "telegram") setPrayerTelegramAlertsEnabled(next);
+    else setPrayerEmailCopiesEnabled(next);
+    setMessage(next ? "Preference enabled." : "Preference disabled.");
   }
 
   return (
@@ -194,6 +217,41 @@ export function ProfileSettings({profile}: {profile: Profile}) {
             <div><dt>Telegram ID</dt><dd>{telegramChatId || "—"}</dd></div>
           </dl>
         )}
+      </section>
+
+      <section className="admin-profile-section">
+        <div className="admin-profile-section-heading">
+          <div>
+            <h3><IconBell size={18} aria-hidden /> Prayer request alerts</h3>
+            <p>Choose how you receive prayer requests from the panel. Both are off by default and only you can change them here.</p>
+          </div>
+        </div>
+        <div className="admin-alert-preferences">
+          <label className="admin-alert-toggle">
+            <input
+              type="checkbox"
+              checked={prayerTelegramAlertsEnabled}
+              disabled={saving}
+              onChange={() => toggleAlert("telegram")}
+            />
+            <span>
+              <strong>Receive prayer requests via Telegram</strong>
+              <small>Sends a Telegram message when a new prayer request arrives. Requires your Telegram ID above.</small>
+            </span>
+          </label>
+          <label className="admin-alert-toggle">
+            <input
+              type="checkbox"
+              checked={prayerEmailCopiesEnabled}
+              disabled={saving}
+              onChange={() => toggleAlert("email")}
+            />
+            <span>
+              <strong>Receive prayer request email copies</strong>
+              <small>Sends a copy of new prayer requests to your email address.</small>
+            </span>
+          </label>
+        </div>
       </section>
 
       <section className="admin-profile-section">

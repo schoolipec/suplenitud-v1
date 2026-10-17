@@ -28,9 +28,14 @@ export async function PATCH(request: Request, {params}: Params) {
   if (!body || typeof body !== "object") return NextResponse.json({error: "invalid_request"}, {status: 400});
   const {name, role, active, forcePasswordChange} = body as Record<string, unknown>;
 
-  const data: {name?: string; active?: boolean; mustChangePassword?: boolean} = {};
+  const data: {name?: string; active?: boolean; mustChangePassword?: boolean; prayerTelegramAlertsEnabled?: boolean; prayerEmailCopiesEnabled?: boolean} = {};
   const auditMetadata: Record<string, unknown> = {};
   let roleChange: ApplicationRole | null = null;
+
+  // SUPER_ADMIN cannot have their preferences changed by anyone else
+  if (targetRoles.includes("SUPER_ADMIN") && (body as Record<string, unknown>).prayerTelegramAlertsEnabled !== undefined || (body as Record<string, unknown>).prayerEmailCopiesEnabled !== undefined) {
+    return NextResponse.json({error: "cannot_change_super_admin_preferences"}, {status: 403});
+  }
 
   if (name !== undefined) {
     if (typeof name !== "string" || name.trim().length < 2) {
@@ -66,6 +71,14 @@ export async function PATCH(request: Request, {params}: Params) {
     }
     data.mustChangePassword = forcePasswordChange;
     auditMetadata.forcePasswordChange = forcePasswordChange;
+  }
+
+  for (const field of ["prayerTelegramAlertsEnabled", "prayerEmailCopiesEnabled"] as const) {
+    const value = (body as Record<string, unknown>)[field];
+    if (value === undefined) continue;
+    if (typeof value !== "boolean") return NextResponse.json({error: "invalid_preference"}, {status: 400});
+    data[field] = value;
+    auditMetadata[field] = value;
   }
 
   const revokeSessions = data.active === false || data.mustChangePassword === true;

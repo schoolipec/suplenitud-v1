@@ -29,6 +29,8 @@ export default async function UsersPage() {
       createdAt: true,
       active: true,
       twoFactorEnabled: true,
+      prayerTelegramAlertsEnabled: true,
+      prayerEmailCopiesEnabled: true,
       roles: {select: {role: true}},
       sessions: {select: {updatedAt: true}, orderBy: {updatedAt: "desc"}, take: 1},
       invitations: {
@@ -43,6 +45,8 @@ export default async function UsersPage() {
     ...item,
     createdAt: item.createdAt.toISOString(),
     roles: item.roles.map(({role}) => role),
+    prayerTelegramAlertsEnabled: item.prayerTelegramAlertsEnabled,
+    prayerEmailCopiesEnabled: item.prayerEmailCopiesEnabled,
     lastActivityAt: sessions[0]?.updatedAt.toISOString() ?? null,
     pendingInvitation: invitations[0]
       ? {

@@ -4,6 +4,8 @@ import {notifyPrayerDelivery} from "@/lib/prayer-external-notifications";
 import {notifyAdmins} from "@/lib/prayer-notifications";
 import {validatePrayerRequest} from "@/lib/prayer-validation";
 import {publicPrayerRequestsEnabled} from "@/lib/public-features";
+import {selectPrayerAlertRecipients} from "@/lib/prayer-recipients";
+import {getAdminUrl} from "@/lib/admin-url";
 
 export async function POST(request: Request) {
   if (!publicPrayerRequestsEnabled) {
@@ -47,21 +49,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const superAdmin = await prisma.user.findFirst({
-      where: {
-        active: true,
-        telegramChatId: {not: null},
-        roles: {some: {role: "SUPER_ADMIN"}},
-      },
-      orderBy: {createdAt: "asc"},
-      select: {telegramChatId: true},
+    const candidates = await prisma.user.findMany({
+      where: {active: true, roles: {some: {role: {in: ["SUPER_ADMIN", "ADMIN"]}}}},
+      select: {id: true, name: true, email: true, active: true, telegramChatId: true, prayerTelegramAlertsEnabled: true, prayerEmailCopiesEnabled: true, roles: {select: {role: true}}},
     });
+    const recipients = selectPrayerAlertRecipients(candidates);
     await notifyPrayerDelivery({
       id: created.id,
       name,
       message,
       createdAt: created.createdAt,
-      telegramChatId: superAdmin?.telegramChatId ?? null,
+      telegramChatIds: recipients.telegramChatIds,
+      emailCopyRecipients: recipients.emailCopyRecipients,
+      adminUrl: getAdminUrl(),
     });
   } catch {
     // External delivery must never block storage or the visitor response.

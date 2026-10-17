@@ -25,6 +25,8 @@ type ManagedUser = {
   roles: string[];
   lastActivityAt: string | null;
   pendingInvitation: {id: string; expiresAt: string; createdAt: string} | null;
+  prayerTelegramAlertsEnabled: boolean;
+  prayerEmailCopiesEnabled: boolean;
 };
 
 const roleLabels: Record<string, string> = {
@@ -277,6 +279,36 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
                   </select>
                 )}
               </div>
+              {!editingUser.roles.includes("SUPER_ADMIN") && editingUser.roles.includes("ADMIN") ? (
+                <div className="admin-alert-preferences">
+                  <h4>Alertas de peticiones de oración</h4>
+                  <p className="admin-field-note">El usuario activa sus propios avisos desde Settings. Aquí puede ajustarlos por él.</p>
+                  <label className="admin-alert-toggle">
+                    <input
+                      type="checkbox"
+                      name="prayerTelegramAlertsEnabled"
+                      defaultChecked={editingUser.prayerTelegramAlertsEnabled}
+                      disabled={saving}
+                    />
+                    <span>
+                      <strong>Recibir peticiones de oración por Telegram</strong>
+                      <small>Requiere un ID de Telegram configurado por el usuario.</small>
+                    </span>
+                  </label>
+                  <label className="admin-alert-toggle">
+                    <input
+                      type="checkbox"
+                      name="prayerEmailCopiesEnabled"
+                      defaultChecked={editingUser.prayerEmailCopiesEnabled}
+                      disabled={saving}
+                    />
+                    <span>
+                      <strong>Recibir copias por correo de peticiones de oración</strong>
+                      <small>Envía una copia al correo del usuario cuando llega una petición.</small>
+                    </span>
+                  </label>
+                </div>
+              ) : null}
               <div className="admin-form-actions">
                 <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</button>
                 <button type="button" className="admin-button-ghost" onClick={() => setEditingId(null)}>Cancel</button>
