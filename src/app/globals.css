@@ -418,3 +418,24 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   .modal-overlay { padding: 0; align-items: stretch; }
   .modal-content { top: auto; bottom: 0; left: 0; transform: none; width: 100%; max-height: calc(100vh - 1.7rem); border-radius: 1rem 1rem 0 0; border-bottom: 0; }
 }
+
+/* Public Square giving CTA (external link only — no checkout, SDK, iframe or popup) */
+.offering {
+  display: grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: clamp(2rem, 6vw, 7rem);
+  align-items: center;
+  background: linear-gradient(110deg, #0b3a2a, #123e59 55%, #328045);
+  color: #fff;
+}
+.offering h2 { color: #fff; }
+.offering .eyebrow { color: var(--lime); }
+.offering p:not(.eyebrow) { color: #d7ecf7; max-width: 60ch; }
+.offering-notice { margin-top: 1rem; padding: .7rem .9rem; border-left: 3px solid var(--lime); border-radius: 0 .45rem .45rem 0; background: rgb(255 255 255 / 8%); font-size: .9rem; font-style: italic; line-height: 1.5; }
+.button.secondary.offering-cta { justify-self: start; background: #fff; color: var(--navy); }
+.button.secondary.offering-cta:hover { filter: brightness(1.05); }
+.button.secondary.offering-cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+@media (max-width: 760px) {
+  .offering { grid-template-columns: 1fr; }
+  .button.secondary.offering-cta { justify-self: stretch; text-align: center; }
+}
