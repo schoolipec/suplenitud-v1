@@ -14,6 +14,7 @@ import {
   IconUserCheck,
   IconUserOff,
 } from "@tabler/icons-react";
+import {Modal} from "@/components/ui/Modal";
 
 type ManagedUser = {
   id: string;
@@ -41,6 +42,29 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("en-US", {dateStyle: "medium"}).format(new Date(value));
 }
 
+const emailReasonLabels: Record<string, string> = {
+  smtp_not_configured: "Email delivery is not configured on the server yet.",
+  smtp_send_failed: "The mail server could not deliver the message this time.",
+  template_disabled: "The invitation email is temporarily disabled.",
+};
+
+function invitationResultCopy(result: {email: string; emailSent: boolean; mode: "create" | "resend"}) {
+  if (result.mode === "create") {
+    return {
+      title: "User created",
+      body: result.emailSent
+        ? `User created. An invitation was sent to ${result.email}. The link expires in 24 hours.`
+        : "User created, but the invitation email was not delivered. The account remains pending and cannot sign in. Configure mail, then use Resend invitation.",
+    };
+  }
+  return {
+    title: "Invitation resend",
+    body: result.emailSent
+      ? `The invitation was resent to ${result.email}. The previous link no longer works. The new link expires in 24 hours.`
+      : "A new invitation link was created, but the email was not delivered. The previous link no longer works. The account remains pending. Configure mail, then use Resend invitation.",
+  };
+}
+
 export function UserManagement({initialUsers, currentUserId}: {initialUsers: ManagedUser[]; currentUserId: string}) {
   const [users, setUsers] = useState<ManagedUser[]>(initialUsers);
   const [message, setMessage] = useState<string | null>(null);
@@ -53,17 +77,25 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<{id: string; action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke"} | null>(null);
   const [saving, setSaving] = useState(false);
+  const [resultModal, setResultModal] = useState<{email: string; emailSent: boolean; emailReason?: string | null; mode: "create" | "resend"} | null>(null);
 
-  async function loadUsers() {
+  async function loadUsers(): Promise<boolean> {
     setLoading(true);
-    const response = await fetch("/api/admin/users", {cache: "no-store"});
-    const data = await response.json().catch(() => null);
-    setLoading(false);
-    if (!response.ok) {
+    try {
+      const response = await fetch("/api/admin/users", {cache: "no-store"});
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !Array.isArray(data?.users)) {
+        setMessage("The user list could not be loaded.");
+        return false;
+      }
+      setUsers(data.users);
+      return true;
+    } catch {
       setMessage("The user list could not be loaded.");
-      return;
+      return false;
+    } finally {
+      setLoading(false);
     }
-    setUsers(data.users);
   }
 
   function toggleExpand(id: string) {
@@ -77,9 +109,9 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
 
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
     setSaving(true);
-    const form = new FormData(event.currentTarget);
+    const formEl = event.currentTarget;
+    const form = new FormData(formEl);
     const response = await fetch("/api/admin/users", {
       method: "POST",
       headers: {"content-type": "application/json"},
@@ -99,18 +131,36 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
       );
       return;
     }
-    event.currentTarget.reset();
+    const email = String(data.email ?? form.get("email") ?? "");
+    formEl.reset();
     setCreating(false);
-    setMessage(
-      data?.emailSent
-        ? "User created. An invitation was sent so the person can set their own password."
-        : "User created, but the invitation email could not be sent (mail is not configured). Use Resend invitation to retry.",
-    );
-    await loadUsers();
+    // The result modal is shown first so a failed refresh never hides the outcome.
+    setResultModal({email, emailSent: Boolean(data.emailSent), emailReason: data.emailReason, mode: "create"});
+    const refreshed = await loadUsers();
+    if (!refreshed) {
+      const now = new Date();
+      const newUser: ManagedUser = {
+        id: data.id ?? email,
+        name: String(form.get("name") ?? ""),
+        email,
+        createdAt: now.toISOString(),
+        active: true,
+        twoFactorEnabled: false,
+        roles: [String(form.get("role") ?? "ADMIN")],
+        lastActivityAt: null,
+        prayerTelegramAlertsEnabled: false,
+        prayerEmailCopiesEnabled: false,
+        pendingInvitation: {
+          id: "optimistic",
+          createdAt: now.toISOString(),
+          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+        },
+      };
+      setUsers((prev) => (prev.some((user) => user.email === email) ? prev : [newUser, ...prev]));
+    }
   }
 
   async function runInvitationAction(id: string, action: "resend" | "revoke") {
-    setMessage(null);
     setSaving(true);
     const response = await fetch(`/api/admin/users/${id}/invitation`, {
       method: "POST",
@@ -131,15 +181,19 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
       return;
     }
     if (action === "resend") {
-      setMessage(
-        data?.emailSent
-          ? "Invitation resent. The previous link no longer works."
-          : "A new invitation link was created, but the email could not be sent (mail is not configured).",
-      );
+      const target = users.find((user) => user.id === id);
+      setResultModal({
+        email: target?.email ?? data.email ?? "",
+        emailSent: Boolean(data.emailSent),
+        emailReason: data.emailReason,
+        mode: "resend",
+      });
+      // Refresh best-effort; the resend already rotated the token server-side.
+      await loadUsers();
     } else {
       setMessage("Invitation revoked. The pending link no longer works.");
+      await loadUsers();
     }
-    await loadUsers();
   }
 
   async function onEdit(event: FormEvent<HTMLFormElement>) {
@@ -389,6 +443,29 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
           </table>
         </div>
       </section>
+
+      {resultModal ? (
+        <Modal
+          open
+          onOpenChange={(open) => {
+            if (!open) setResultModal(null);
+          }}
+          title={invitationResultCopy(resultModal).title}
+          closeLabel="Close result"
+          showCloseButton={false}
+          dismissable={false}
+        >
+          <p className="modal-description">{invitationResultCopy(resultModal).body}</p>
+          {!resultModal.emailSent && resultModal.emailReason && emailReasonLabels[resultModal.emailReason] ? (
+            <p className="admin-field-note">{emailReasonLabels[resultModal.emailReason]}</p>
+          ) : null}
+          <div className="modal-actions">
+            <button type="button" className="button" onClick={() => setResultModal(null)}>
+              Close
+            </button>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

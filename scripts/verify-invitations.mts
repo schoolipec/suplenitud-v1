@@ -114,6 +114,31 @@ assert.match(userManagement, /Resend invitation/);
 assert.match(userManagement, /\/invitation`/);
 assert.match(userManagement, /Invitation pending/);
 
+// Wiring: creation/resend results use the shared Radix modal, never a discreet
+// inline strip; email is only claimed as sent when emailSent is true, and the
+// failure copy points to Resend invitation instead of leaking technical detail.
+const modal = readFileSync(join(root, "src/components/ui/Modal.tsx"), "utf8");
+assert.match(modal, /@radix-ui\/react-dialog/);
+assert.match(userManagement, /from "@\/components\/ui\/Modal"/);
+assert.match(userManagement, /invitationResultCopy/);
+assert.match(userManagement, /emailSent/);
+assert.match(userManagement, /emailReason/);
+assert.match(userManagement, /smtp_not_configured/);
+assert.match(userManagement, /smtp_send_failed/);
+assert.match(userManagement, /template_disabled/);
+assert.match(userManagement, /dismissable=\{false\}/);
+assert.ok(userManagement.includes("User created. An invitation was sent to"));
+assert.ok(userManagement.includes("the invitation email was not delivered"));
+assert.ok(userManagement.includes("use Resend invitation"));
+assert.ok(!userManagement.includes("Stack"));
+assert.ok(!userManagement.includes("SMTP_HOST"));
+
+// Wiring: a successful creation reflects "Invitation pending" without a manual
+// refresh — the row is inserted optimistically when loadUsers fails.
+assert.match(userManagement, /pendingInvitation: \{/);
+assert.match(userManagement, /const refreshed = await loadUsers\(\)/);
+assert.match(userManagement, /setResultModal\(\{email[\s\S]*?mode: "create"\}\)[\s\S]*?const refreshed = await loadUsers\(\)/);
+
 // Wiring: migration preserves existing users and stores hashes only
 const migration = readFileSync(join(root, "prisma/migrations/20261014000000_user_invitations/migration.sql"), "utf8");
 assert.match(migration, /user_invitations/);
