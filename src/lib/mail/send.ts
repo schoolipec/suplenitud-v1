@@ -19,6 +19,7 @@ export async function sendInvitationMail(mail: InvitationMail): Promise<SendResu
       port: config.port,
       secure: config.secure,
       auth: {user: config.user, pass: config.pass},
+      tls: config.tlsServername ? {servername: config.tlsServername} : undefined,
     });
     await transporter.sendMail({from: config.from, to: mail.to, subject: mail.subject, html: mail.html, text: mail.text});
     return {sent: true, reason: "sent"};

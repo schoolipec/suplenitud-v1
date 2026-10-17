@@ -15,11 +15,20 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       NEXT_PUBLIC_SITE_URL: https://demo.suplenitud.com
       APP_ADMIN_URL: ${APP_ADMIN_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@suplenitud.com}
+      SMTP_TLS_SERVERNAME: ${SMTP_TLS_SERVERNAME:-}
       GEO_TRUST_PROXY_HEADERS: ${GEO_TRUST_PROXY_HEADERS:-false}
       GEOIP_DATABASE_PATH: /opt/geoip/GeoLite2-City.mmdb
       PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-true}
       PRAYER_NOTIFICATION_WEBHOOK_URL: ${PRAYER_NOTIFICATION_WEBHOOK_URL:-}
       PRAYER_NOTIFICATION_WEBHOOK_SECRET: ${PRAYER_NOTIFICATION_WEBHOOK_SECRET:-}
+    extra_hosts:
+      - "mail.suplenitud.com:172.16.1.1"
     volumes:
       - /opt/suplenitud-demo/geoip:/opt/geoip:ro
     networks:

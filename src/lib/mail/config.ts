@@ -5,6 +5,7 @@ export type SmtpConfig = {
   user: string;
   pass: string;
   from: string;
+  tlsServername: string;
 };
 
 export const DEFAULT_MAIL_FROM = "no-reply@suplenitud.com";
@@ -23,6 +24,7 @@ export function getSmtpConfig(env: NodeJS.ProcessEnv = process.env): SmtpConfig 
     user,
     pass,
     from: (env.SMTP_FROM ?? DEFAULT_MAIL_FROM).trim() || DEFAULT_MAIL_FROM,
+    tlsServername: (env.SMTP_TLS_SERVERNAME ?? "").trim(),
   };
 }
 
