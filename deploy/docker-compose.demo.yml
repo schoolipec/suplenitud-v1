@@ -15,6 +15,7 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       NEXT_PUBLIC_SITE_URL: https://demo.suplenitud.com
       APP_ADMIN_URL: ${APP_ADMIN_URL:-}
+      CMS_MEDIA_DIR: /opt/suplenitud-media
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -31,6 +32,7 @@ services:
       - "mail.suplenitud.com:172.16.1.1"
     volumes:
       - /opt/suplenitud-demo/geoip:/opt/geoip:ro
+      - /opt/suplenitud-demo/media:/opt/suplenitud-media
     networks:
       n8n-internal:
         aliases:
