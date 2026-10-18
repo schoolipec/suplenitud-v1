@@ -23,7 +23,7 @@ export default async function MinistryContactsPage() {
   const contacts = await prisma.ministryContact.findMany({orderBy: {createdAt: "asc"}});
   const initialContacts = contacts.map((contact) => ({...contact, createdAt: contact.createdAt.toISOString()}));
   return (
-    <AdminFrame roles={roles} title="Ministry contacts">
+    <AdminFrame roles={roles}>
       <MinistryContactsManager initialContacts={initialContacts} />
     </AdminFrame>
   );

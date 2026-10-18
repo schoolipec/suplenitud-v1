@@ -63,7 +63,7 @@ export default async function VisitsPage({searchParams}: {searchParams: Promise<
   };
 
   return (
-    <AdminFrame roles={roles} title="Visits">
+    <AdminFrame roles={roles}>
       <VisitsDashboard data={data} />
     </AdminFrame>
   );

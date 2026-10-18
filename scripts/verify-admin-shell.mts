@@ -7,7 +7,7 @@ import {
   adminMessages,
   resolveAdminLocale,
 } from "../src/i18n/admin-shell";
-import {adminCrumbs} from "../src/lib/admin-navigation";
+import {adminCrumbs, adminPageTitle, formatAdminTemplate} from "../src/lib/admin-navigation";
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -44,6 +44,15 @@ check(dashboard.includes('href="/admin/content"'), "A: dashboard card must link 
 check(!dashboard.includes("/admin/template"), "A: dashboard must not link to /admin/template");
 check(templatePage.includes('redirect("/admin/content")'), "A: /admin/template stays a passive redirect to /admin/content");
 
+/* A2. Sidebar grouping: Visits belongs to Main */
+const mainIndex = sidebar.indexOf('key: "main"');
+const visitsIndex = sidebar.indexOf("/admin/visits");
+const ministryIndex = sidebar.indexOf('key: "ministry"');
+check(visitsIndex >= 0, "A2: Visits stays in the sidebar");
+eq((sidebar.match(/\/admin\/visits/g) ?? []).length, 1, "A2: Visits appears in exactly one group");
+check(mainIndex >= 0 && visitsIndex > mainIndex && visitsIndex < ministryIndex, "A2: Visits is grouped under Main");
+check(sidebar.includes('href: "/admin/visits"'), "A2: Visits keeps its route");
+
 /* B. Professional admin shell */
 check(sidebar.includes("authClient.signOut()"), "B: sign out reuses authClient.signOut");
 check(/router\.replace\("\/"\)/.test(sidebar), 'B: sidebar sign out lands on "/"');
@@ -60,13 +69,20 @@ check(/router\.replace\("\/"\)/.test(userMenu), 'B: user menu sign out lands on 
 check(/if \(isAdmin\) return null/.test(publicHeader), "B: public header self-suppresses on /admin");
 check(publicFooter.includes('path.startsWith("/admin/")'), "B: public footer self-suppresses on /admin");
 for (const page of [
+  "src/app/admin/page.tsx",
   "src/app/admin/content/page.tsx",
   "src/app/admin/prayer-requests/page.tsx",
   "src/app/admin/users/page.tsx",
   "src/app/admin/configs/page.tsx",
   "src/app/admin/notifications/page.tsx",
+  "src/app/admin/ministry-contacts/page.tsx",
+  "src/app/admin/donations/page.tsx",
+  "src/app/admin/visits/page.tsx",
+  "src/app/admin/usher-availability/page.tsx",
 ]) {
-  check(read(page).includes("AdminFrame"), `B: ${page} uses the shared AdminFrame shell`);
+  const source = read(page);
+  check(source.includes("AdminFrame"), `B: ${page} uses the shared AdminFrame shell`);
+  check(!source.includes("title="), `B: ${page} no longer passes a fixed title to AdminFrame`);
 }
 
 /* C. Bilingual admin language base (English default, Spanish optional) */
@@ -92,6 +108,30 @@ check(frame.includes("await cookies()"), "C: shell reads language from a cookie 
 check(!frame.includes('"use client"'), "C: AdminFrame is a server component");
 check(!frame.includes("searchParams"), "C: language never comes from query params");
 check(breadcrumbs.includes("useAdminShell") && sidebar.includes("useAdminShell") && userMenu.includes("useAdminShell") && popover.includes("useAdminShell"), "C: shell client components read strings from the message catalogue");
+
+/* C2. Language endpoint security (origin + admin session) */
+check(langRoute.includes("hasValidPublicOrigin(request)"), "C2: language route validates origin with the canonical helper");
+check(langRoute.includes("requireAdminActor(request)"), "C2: language route requires an admin session guard");
+check(langRoute.includes("import {requireAdminActor} from \"@/lib/access\""), "C2: language route reuses the shared access guard, not a bypass");
+eq((langRoute.match(/status: 403/g) ?? []).length, 2, "C2: language route answers 403 for invalid origin and unauthorized session");
+check(langRoute.indexOf("requireAdminActor(request)") < langRoute.indexOf("cookies.set"), "C2: authorization runs before the cookie is written");
+check(!/requireAdminActor\([^)]*\)\s*\?\s*true/.test(langRoute), "C2: no hardcoded authz bypass");
+check(langRoute.includes("httpOnly: true") && langRoute.includes("sameSite") && langRoute.includes("maxAge"), "C2: language cookie stays httpOnly, sameSite and persistent");
+
+/* C3. Bilingual shell: header title follows the chosen language */
+eq(adminMessages.en.header.welcome, "Welcome, {name}", "C3: English greeting template");
+eq(adminMessages.es.header.welcome, "Bienvenido, {name}", "C3: Spanish greeting template");
+eq(formatAdminTemplate(adminMessages.en.header.welcome, {name: "Ana"}), "Welcome, Ana", "C3: greeting interpolation (en)");
+eq(adminPageTitle("/admin", adminMessages.en, "Ana"), "Welcome, Ana", "C3: Overview greets in English");
+eq(adminPageTitle("/admin", adminMessages.es, "Ana"), "Bienvenido, Ana", "C3: Overview greets in Spanish");
+eq(adminPageTitle("/admin", adminMessages.es, null), "Resumen", "C3: Overview falls back to the localized label without a name");
+eq(adminPageTitle("/admin/content", adminMessages.en), "Website content", "C3: route title in English");
+eq(adminPageTitle("/admin/content", adminMessages.es), "Contenido del sitio", "C3: route title in Spanish");
+eq(adminPageTitle("/admin/visits", adminMessages.es), "Visitas", "C3: Visits title in Spanish");
+eq(adminPageTitle("/admin/prayer-requests/print", adminMessages.es), "Peticiones de oración", "C3: nested route title in Spanish");
+check(header.includes("useAdminShell") && header.includes("adminPageTitle"), "C3: header derives its title from the bilingual catalogue");
+check(header.includes("userName"), "C3: header receives the user name for the greeting");
+check(!/title=/.test(frame), "C3: AdminFrame no longer receives fixed titles");
 
 /* D. Environment badge and notifications popover */
 check(frame.includes("process.env.ADMIN_ENVIRONMENT"), "D: environment badge comes from a server env var");

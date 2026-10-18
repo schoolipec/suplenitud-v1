@@ -23,7 +23,7 @@ export default async function PrayerRequestsPage({searchParams}: {searchParams: 
   if (!canViewPrayerRequests(roles)) redirect("/admin/sign-in?error=unauthorized");
 
   const parsed = parsePrayerFilters(prayerPageParams(await searchParams));
-  if (!parsed.ok) return <AdminFrame roles={roles} title="Peticiones de oración"><p role="alert">Filtros inválidos. Revisa el estado, la búsqueda y las fechas.</p></AdminFrame>;
+  if (!parsed.ok) return <AdminFrame roles={roles}><p role="alert">Filtros inválidos. Revisa el estado, la búsqueda y las fechas.</p></AdminFrame>;
   const [requests, newCount] = await Promise.all([
     prisma.prayerRequest.findMany({
       where: prayerQueueWhere(parsed.filters), select: PRAYER_QUEUE_SELECT,
@@ -38,7 +38,7 @@ export default async function PrayerRequestsPage({searchParams}: {searchParams: 
   }));
 
   return (
-    <AdminFrame roles={roles} title="Peticiones de oración">
+    <AdminFrame roles={roles}>
       <PrayerRequestsQueue initialRequests={initialRequests} initialNewCount={newCount} initialFilters={parsed.filters} />
     </AdminFrame>
   );

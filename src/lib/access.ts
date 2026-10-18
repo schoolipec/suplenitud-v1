@@ -65,3 +65,14 @@ export async function requireMinistryManager(request: Request) {
   if (!user?.active) return null;
   return canManageMinistryContacts(user.roles.map(({role}) => role)) ? session.user : null;
 }
+
+export async function requireAdminActor(request: Request) {
+  const session = await auth.api.getSession({headers: request.headers});
+  if (!session?.user) return null;
+  const user = await prisma.user.findUnique({
+    where: {id: session.user.id},
+    select: {active: true, roles: {select: {role: true}}},
+  });
+  if (!user?.active) return null;
+  return canAccessAdmin(user.roles.map(({role}) => role)) ? session.user : null;
+}

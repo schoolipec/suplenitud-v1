@@ -34,7 +34,7 @@ export default async function NotificationsPage() {
   const initial = notifications.map((n) => ({...n, createdAt: n.createdAt.toISOString()}));
 
   return (
-    <AdminFrame roles={roles} title="Notifications">
+    <AdminFrame roles={roles}>
       <NotificationsList initialNotifications={initial} initialUnread={unreadCount} />
     </AdminFrame>
   );

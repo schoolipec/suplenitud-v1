@@ -48,7 +48,7 @@ export default async function AdminContentPage() {
   }));
 
   return (
-    <AdminFrame roles={roles} title="Website content">
+    <AdminFrame roles={roles}>
       <ContentManager initialBlocks={initialBlocks} />
     </AdminFrame>
   );

@@ -51,7 +51,7 @@ export default async function DonationsPage({
   const payments = getPaymentsStatus();
 
   return (
-    <AdminFrame roles={roles} title="Donations">
+    <AdminFrame roles={roles}>
       <DonationsConsole
         rows={rows.map((item) => ({
           ...item,

@@ -26,6 +26,7 @@ export type AdminMessages = {
     notifications: string;
     settings: string;
   };
+  header: {welcome: string};
   breadcrumbs: {root: string; labels: Record<string, string>};
   userMenu: {
     aria: string;
@@ -68,6 +69,7 @@ export const adminMessages: Record<AdminLocale, AdminMessages> = {
       notifications: "Notifications",
       settings: "Settings",
     },
+    header: {welcome: "Welcome, {name}"},
     breadcrumbs: {
       root: "Administration",
       labels: {
@@ -130,6 +132,7 @@ export const adminMessages: Record<AdminLocale, AdminMessages> = {
       notifications: "Notificaciones",
       settings: "Configuración",
     },
+    header: {welcome: "Bienvenido, {name}"},
     breadcrumbs: {
       root: "Administración",
       labels: {

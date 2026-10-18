@@ -36,12 +36,17 @@ export function AdminSidebar({roles}: {roles: string[]}) {
   const isSuperOrAdmin = isSuperAdmin || roles.includes("ADMIN");
 
   const rawGroups: {key: GroupKey; items: Item[]}[] = [
-    {key: "main", items: [{href: "/admin", label: t.navigation.overview, icon: IconLayoutDashboard}]},
+    {
+      key: "main",
+      items: [
+        {href: "/admin", label: t.navigation.overview, icon: IconLayoutDashboard},
+        {href: "/admin/visits", label: t.navigation.visits, icon: IconChartBar, visible: isSuperOrAdmin},
+      ],
+    },
     {
       key: "ministry",
       items: [
         {href: "/admin/ministry-contacts", label: t.navigation.ministryContacts, icon: IconAddressBook, visible: isSuperOrAdmin},
-        {href: "/admin/visits", label: t.navigation.visits, icon: IconChartBar, visible: isSuperOrAdmin},
         {href: "/admin/prayer-requests", label: t.navigation.prayerRequests, icon: IconPray, visible: isSuperOrAdmin},
         {href: "/admin/ushers", label: t.navigation.ushers, icon: IconUsersGroup, visible: isSuperOrAdmin},
       ],

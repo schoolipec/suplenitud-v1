@@ -43,7 +43,7 @@ export default async function ConfigsPage() {
   };
 
   return (
-    <AdminFrame roles={roles} title="Settings">
+    <AdminFrame roles={roles}>
       <div className="admin-settings-layout">
         <ProfileSettings
           profile={{

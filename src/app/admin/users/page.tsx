@@ -57,7 +57,7 @@ export default async function UsersPage() {
       : null,
   }));
   return (
-    <AdminFrame roles={roles} title="User management">
+    <AdminFrame roles={roles}>
       <UserManagement initialUsers={initialUsers} currentUserId={session.user.id} />
     </AdminFrame>
   );
