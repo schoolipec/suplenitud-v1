@@ -1,5 +1,6 @@
 import {readFileSync, writeFileSync} from "node:fs";
 import {resolve} from "node:path";
+import {tmpdir} from "node:os";
 import {PDFDocument, StandardFonts} from "pdf-lib";
 import {buildPrayerQueleaPdf, wrapText, fitText, fitName, MAX_MESSAGE_CHARS} from "../src/lib/prayer-quelea-pdf";
 
@@ -55,9 +56,11 @@ const samples = [
   },
 ];
 
-writeFileSync(resolve(repoRoot, "scripts/quelea-sample-input.json"), JSON.stringify(samples, null, 2));
+const outDir = tmpdir();
+writeFileSync(resolve(outDir, "quelea-sample-input.json"), JSON.stringify(samples, null, 2));
 const pdfBytes = await buildPrayerQueleaPdf(samples);
-writeFileSync(resolve(repoRoot, "scripts/quelea-sample.pdf"), pdfBytes);
+writeFileSync(resolve(outDir, "quelea-sample.pdf"), pdfBytes);
+console.log(`sample PDF: ${resolve(outDir, "quelea-sample.pdf")}`);
 
 const doc = await PDFDocument.load(pdfBytes);
 check(doc.getPageCount() === 3, "Debe generar un solo PDF con 3 páginas (una por petición)");
