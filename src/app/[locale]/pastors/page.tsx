@@ -4,6 +4,8 @@ import {hasLocale} from "next-intl";
 import {routing} from "@/i18n/routing";
 import {type SupportedLocale} from "@/content/locale-copy";
 
+export const instant = false;
+
 const baseUrl = "https://demo.suplenitud.com";
 export async function generateMetadata({params}: PageProps<"/[locale]/pastors">): Promise<Metadata> {
   const {locale} = await params;
