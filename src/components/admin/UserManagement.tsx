@@ -1,6 +1,7 @@
+
 "use client";
 
-import {FormEvent, useState} from "react";
+import {FormEvent, useEffect, useState} from "react";
 import {
   IconBan,
   IconCheck,
@@ -15,6 +16,7 @@ import {
   IconUserOff,
 } from "@tabler/icons-react";
 import {Modal} from "@/components/ui/Modal";
+import {AdminPagination} from "@/components/admin/AdminPagination";
 
 type ManagedUser = {
   id: string;
@@ -65,7 +67,7 @@ function invitationResultCopy(result: {email: string; emailSent: boolean; mode: 
   };
 }
 
-export function UserManagement({initialUsers, currentUserId}: {initialUsers: ManagedUser[]; currentUserId: string}) {
+export function UserManagement({initialUsers = [], currentUserId}: {initialUsers?: ManagedUser[]; currentUserId?: string}) {
   const [users, setUsers] = useState<ManagedUser[]>(initialUsers);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -78,17 +80,28 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
   const [confirming, setConfirming] = useState<{id: string; action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke"} | null>(null);
   const [saving, setSaving] = useState(false);
   const [resultModal, setResultModal] = useState<{email: string; emailSent: boolean; emailReason?: string | null; mode: "create" | "resend"} | null>(null);
+  const [pagination, setPagination] = useState({page: 1, pageSize: 25, totalItems: 0, totalPages: 1});
+  const [sort, setSort] = useState<{field: "createdAt" | "name" | "email" | "active"; direction: "asc" | "desc"}>({field: "createdAt", direction: "desc"});
 
-  async function loadUsers(): Promise<boolean> {
+  async function loadUsers(page = 1): Promise<boolean> {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/users", {cache: "no-store"});
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("pageSize", String(pagination.pageSize));
+      if (query.trim()) params.set("query", query.trim());
+      if (roleFilter !== "ALL") params.set("role", roleFilter);
+      if (statusFilter !== "ALL") params.set("status", statusFilter);
+      params.set("sort", sort.field);
+      params.set("direction", sort.direction);
+      const response = await fetch(`/api/admin/users?${params.toString()}`, {cache: "no-store"});
       const data = await response.json().catch(() => null);
-      if (!response.ok || !Array.isArray(data?.users)) {
+      if (!response.ok || !Array.isArray(data?.users) || !data?.pagination) {
         setMessage("The user list could not be loaded.");
         return false;
       }
       setUsers(data.users);
+      setPagination(data.pagination);
       return true;
     } catch {
       setMessage("The user list could not be loaded.");
@@ -96,9 +109,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
     } finally {
       setLoading(false);
     }
-  }
-
-  function toggleExpand(id: string) {
+  }  function toggleExpand(id: string) {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -136,7 +147,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
     setCreating(false);
     // The result modal is shown first so a failed refresh never hides the outcome.
     setResultModal({email, emailSent: Boolean(data.emailSent), emailReason: data.emailReason, mode: "create"});
-    const refreshed = await loadUsers();
+    const refreshed = await loadUsers(1);
     if (!refreshed) {
       const now = new Date();
       const newUser: ManagedUser = {
@@ -189,10 +200,10 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
         mode: "resend",
       });
       // Refresh best-effort; the resend already rotated the token server-side.
-      await loadUsers();
+      await loadUsers(1);
     } else {
       setMessage("Invitation revoked. The pending link no longer works.");
-      await loadUsers();
+      await loadUsers(1);
     }
   }
 
@@ -219,7 +230,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
     }
     setEditingId(null);
     setMessage("User updated.");
-    await loadUsers();
+    await loadUsers(1);
   }
 
   async function runRowAction(id: string, action: "deactivate" | "activate" | "forcePassword") {
@@ -245,17 +256,8 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
           ? "User deactivated. They can no longer sign in."
           : "User reactivated.",
     );
-    await loadUsers();
+    await loadUsers(1);
   }
-
-  const filtered = users.filter((user) => {
-    const haystack = `${user.name} ${user.email}`.toLowerCase();
-    if (query && !haystack.includes(query.toLowerCase())) return false;
-    if (roleFilter !== "ALL" && !user.roles.includes(roleFilter)) return false;
-    if (statusFilter === "active" && !user.active) return false;
-    if (statusFilter === "inactive" && user.active) return false;
-    return true;
-  });
 
   const editingUser = editingId ? users.find((user) => user.id === editingId) ?? null : null;
 
@@ -268,7 +270,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
             <p>Accounts and access roles for the platform.</p>
           </div>
           <div className="admin-section-actions">
-            <button type="button" className="admin-button-secondary" onClick={loadUsers} disabled={loading}>
+            <button type="button" className="admin-button-secondary" onClick={()=>loadUsers(1)} disabled={loading}>
               <IconRefresh size={17} aria-hidden />
               {loading ? "Refreshing…" : "Refresh"}
             </button>
@@ -410,7 +412,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
               </tr>
             </thead>
             <tbody>
-              {filtered.map((user) => {
+              {users.map((user) => {
                 const expanded = expandedIds.has(user.id);
                 const isSelf = user.id === currentUserId;
                 return (
@@ -430,7 +432,7 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
                   />
                 );
               })}
-              {filtered.length === 0 ? (
+              {users.length === 0 ? (
                 <tr>
                   <td colSpan={6}>
                     <div className="admin-empty">
@@ -441,6 +443,8 @@ export function UserManagement({initialUsers, currentUserId}: {initialUsers: Man
               ) : null}
             </tbody>
           </table>
+        <AdminPagination pagination={pagination} onPageChange={(p)=>loadUsers(p)} disabled={loading} />
+
         </div>
       </section>
 

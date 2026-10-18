@@ -20,45 +20,5 @@ export default async function UsersPage() {
   if (user.mustChangePassword) redirect("/admin/change-password");
   const roles = user.roles.map(({role}) => role);
   if (!canManageUsers(roles)) redirect("/admin?error=unauthorized");
-  const users = await prisma.user.findMany({
-    orderBy: {createdAt: "asc"},
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      createdAt: true,
-      active: true,
-      twoFactorEnabled: true,
-      prayerTelegramAlertsEnabled: true,
-      prayerEmailCopiesEnabled: true,
-      roles: {select: {role: true}},
-      sessions: {select: {updatedAt: true}, orderBy: {updatedAt: "desc"}, take: 1},
-      invitations: {
-        where: {usedAt: null, revokedAt: null},
-        orderBy: {createdAt: "desc"},
-        take: 1,
-        select: {id: true, expiresAt: true, createdAt: true},
-      },
-    },
-  });
-  const initialUsers = users.map(({sessions, invitations, ...item}) => ({
-    ...item,
-    createdAt: item.createdAt.toISOString(),
-    roles: item.roles.map(({role}) => role),
-    prayerTelegramAlertsEnabled: item.prayerTelegramAlertsEnabled,
-    prayerEmailCopiesEnabled: item.prayerEmailCopiesEnabled,
-    lastActivityAt: sessions[0]?.updatedAt.toISOString() ?? null,
-    pendingInvitation: invitations[0]
-      ? {
-          id: invitations[0].id,
-          expiresAt: invitations[0].expiresAt.toISOString(),
-          createdAt: invitations[0].createdAt.toISOString(),
-        }
-      : null,
-  }));
-  return (
-    <AdminFrame roles={roles}>
-      <UserManagement initialUsers={initialUsers} currentUserId={session.user.id} />
-    </AdminFrame>
-  );
+  return <AdminFrame roles={roles}><UserManagement initialUsers={[]} currentUserId={session.user.id} /></AdminFrame>;
 }

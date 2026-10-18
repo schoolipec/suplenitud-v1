@@ -527,3 +527,15 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   .admin-bar-chart { height: 110px; gap: 1px; }
   .admin-summary-card strong.admin-overview-value { font-size: 1.05rem; }
 }
+.admin-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.admin-pagination-info { color: var(--muted); font-size: .9rem; }
+.admin-pagination-controls { display: flex; align-items: center; gap: .8rem; }
+.admin-pagination-btn { padding: .45rem .8rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--card); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.admin-pagination-btn:hover:not(:disabled) { background: var(--mist); }
+.admin-pagination-btn:disabled { opacity: .5; cursor: not-allowed; }
+.admin-pagination-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.admin-pagination-status { color: var(--muted); font-size: .9rem; }
+.admin-table-th.sortable { cursor: pointer; user-select: none; }
+.admin-table-th.sortable:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.admin-table-th.active { color: var(--ink); }
+.admin-table-th-indicator { margin-left: .35rem; font-size: .8rem; color: var(--muted); }
