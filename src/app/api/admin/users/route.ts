@@ -5,6 +5,7 @@ import {requireSuperAdmin} from "@/lib/access";
 import {hasValidPublicOrigin} from "@/lib/request-origin";
 import {ApplicationRole} from "@/generated/prisma/client";
 import {ASSIGNABLE_USER_ROLES} from "@/lib/admin-user-actions";
+import {parseAdminUsersQuery, queryAdminUsers} from "@/lib/admin-users-query";
 import {
   generateInvitationToken,
   hashInvitationToken,
@@ -21,129 +22,13 @@ function inviteBaseUrl(): string {
   return base.replace(/\/+$/, "");
 }
 
-const PAGE_SIZE_WHITELIST = [10, 25, 50] as const;
-const SORT_WHITELIST = ["createdAt", "name", "email", "active"] as const;
-const DIRECTION_WHITELIST = ["asc", "desc"] as const;
-const ROLE_FILTER_WHITELIST = [
-  ApplicationRole.SUPER_ADMIN,
-  ApplicationRole.ADMIN,
-  ApplicationRole.TREASURER,
-  ApplicationRole.USHER,
-] as const;
-type SortField = (typeof SORT_WHITELIST)[number];
-type SortDirection = (typeof DIRECTION_WHITELIST)[number];
-
-function normalizePage(n: number): number {
-  if (!Number.isFinite(n) || n < 1) return 1;
-  return Math.floor(n);
-}
-
-function normalizePageSize(n: number): number {
-  for (const value of PAGE_SIZE_WHITELIST) {
-    if (n === value) return value;
-  }
-  return 25;
-}
-
-function normalizeSort(field: string | null): SortField {
-  if (field && (SORT_WHITELIST as readonly string[]).includes(field)) {
-    return field as SortField;
-  }
-  return "createdAt";
-}
-
-function normalizeDirection(dir: string | null): SortDirection {
-  if (dir && (DIRECTION_WHITELIST as readonly string[]).includes(dir)) {
-    return dir as SortDirection;
-  }
-  return "desc";
-}
-
 export async function GET(request: Request) {
   const actor = await requireSuperAdmin(request);
   if (!actor) return NextResponse.json({error: "forbidden"}, {status: 403});
 
   const url = new URL(request.url);
-  const pageParam = url.searchParams.get("page");
-  const pageSizeParam = url.searchParams.get("pageSize");
-  const queryParam = url.searchParams.get("query");
-  const roleParam = url.searchParams.get("role");
-  const statusParam = url.searchParams.get("status");
-  const sortParam = url.searchParams.get("sort");
-  const directionParam = url.searchParams.get("direction");
-
-  const pageSize = normalizePageSize(Number(pageSizeParam));
-  const sort = normalizeSort(sortParam);
-  const direction = normalizeDirection(directionParam);
-
-  const query = queryParam?.trim() ?? "";
-  const safeQuery = query.length > 120 ? query.slice(0, 120) : query;
-
-  let roleFilter: ApplicationRole | null = null;
-  if (roleParam && roleParam !== "ALL" && (ROLE_FILTER_WHITELIST as readonly string[]).includes(roleParam)) {
-    roleFilter = roleParam as ApplicationRole;
-  }
-
-  let statusFilter: "active" | "inactive" | null = null;
-  if (statusParam === "active" || statusParam === "inactive") {
-    statusFilter = statusParam;
-  }
-
-  const where: Record<string, unknown> = {};
-  if (safeQuery) {
-    where.OR = [
-      {name: {contains: safeQuery, mode: "insensitive"}},
-      {email: {contains: safeQuery, mode: "insensitive"}},
-    ];
-  }
-  if (statusFilter === "active") where.active = true;
-  if (statusFilter === "inactive") where.active = false;
-  if (roleFilter) where.roles = {some: {role: roleFilter}};
-
-  const orderBy: Record<string, unknown> = {[sort]: direction};
-
-  const totalItems = await prisma.user.count({where});
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  // A requested page beyond the last valid page falls back to the last page.
-  const page = Math.min(normalizePage(Number(pageParam)), totalPages);
-  const skip = (page - 1) * pageSize;
-  const take = pageSize;
-
-  const users = await prisma.user.findMany({
-    where,
-    orderBy,
-    skip,
-    take,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      createdAt: true,
-      active: true,
-      twoFactorEnabled: true,
-      prayerTelegramAlertsEnabled: true,
-      prayerEmailCopiesEnabled: true,
-      roles: {select: {role: true}},
-      sessions: {select: {updatedAt: true}, orderBy: {updatedAt: "desc"}, take: 1},
-      invitations: {
-        where: {usedAt: null, revokedAt: null},
-        orderBy: {createdAt: "desc"},
-        take: 1,
-        select: {id: true, expiresAt: true, createdAt: true},
-      },
-    },
-  });
-
-  return NextResponse.json({
-    users: users.map(({sessions, invitations, ...user}) => ({
-      ...user,
-      roles: user.roles.map(({role}) => role),
-      lastActivityAt: sessions[0]?.updatedAt ?? null,
-      pendingInvitation: invitations[0] ?? null,
-    })),
-    pagination: {page, pageSize, totalItems, totalPages},
-    sort: {field: sort, direction},
-  });
+  const result = await queryAdminUsers(parseAdminUsersQuery(url.searchParams));
+  return NextResponse.json(result);
 }
 
 export async function POST(request: Request) {

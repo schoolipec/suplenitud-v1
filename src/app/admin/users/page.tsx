@@ -5,6 +5,7 @@ import {canManageUsers} from "@/lib/access";
 import {prisma} from "@/lib/db/client";
 import {AdminFrame} from "@/components/admin/AdminFrame";
 import {UserManagement} from "@/components/admin/UserManagement";
+import {DEFAULT_ADMIN_USERS_QUERY, queryAdminUsers} from "@/lib/admin-users-query";
 
 export const instant = false;
 export const metadata = {title: "Users | Iglesia Plenitud en Cristo"};
@@ -20,5 +21,6 @@ export default async function UsersPage() {
   if (user.mustChangePassword) redirect("/admin/change-password");
   const roles = user.roles.map(({role}) => role);
   if (!canManageUsers(roles)) redirect("/admin?error=unauthorized");
-  return <AdminFrame roles={roles}><UserManagement currentUserId={session.user.id} /></AdminFrame>;
+  const initialData = await queryAdminUsers(DEFAULT_ADMIN_USERS_QUERY);
+  return <AdminFrame roles={roles}><UserManagement currentUserId={session.user.id} initialData={initialData} /></AdminFrame>;
 }

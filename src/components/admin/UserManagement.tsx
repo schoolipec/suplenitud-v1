@@ -16,24 +16,24 @@ import {
 } from "@tabler/icons-react";
 import {Modal} from "@/components/ui/Modal";
 import {AdminPagination} from "@/components/admin/AdminPagination";
+import type {AdminUsersResult} from "@/lib/admin-users-query";
 
-type ManagedUser = {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-  active: boolean;
-  twoFactorEnabled: boolean;
-  roles: string[];
-  lastActivityAt: string | null;
-  pendingInvitation: {id: string; expiresAt: string; createdAt: string} | null;
-  prayerTelegramAlertsEnabled: boolean;
-  prayerEmailCopiesEnabled: boolean;
-};
+type ManagedUser = AdminUsersResult["users"][number];
+type SortField = AdminUsersResult["sort"]["field"];
+type SortDirection = AdminUsersResult["sort"]["direction"];
+type Pagination = AdminUsersResult["pagination"];
 
-type SortField = "createdAt" | "name" | "email" | "active";
-type SortDirection = "asc" | "desc";
-type Pagination = {page: number; pageSize: number; totalItems: number; totalPages: number};
+function querySignature(parts: {
+  page: number;
+  pageSize: number;
+  query: string;
+  role: string;
+  status: string;
+  sort: SortField;
+  direction: SortDirection;
+}): string {
+  return [parts.page, parts.pageSize, parts.query, parts.role, parts.status, parts.sort, parts.direction].join("|");
+}
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
@@ -123,18 +123,18 @@ function SortHeader({
   );
 }
 
-export function UserManagement({currentUserId}: {currentUserId?: string}) {
-  const [users, setUsers] = useState<ManagedUser[]>([]);
+export function UserManagement({currentUserId, initialData}: {currentUserId?: string; initialData: AdminUsersResult}) {
+  const [users, setUsers] = useState<ManagedUser[]>(initialData.users);
   const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [sort, setSort] = useState<{field: SortField; direction: SortDirection}>({field: "createdAt", direction: "desc"});
-  const [pagination, setPagination] = useState<Pagination>({page: 1, pageSize: 25, totalItems: 0, totalPages: 1});
+  const [page, setPage] = useState(initialData.pagination.page);
+  const [pageSize, setPageSize] = useState(initialData.pagination.pageSize);
+  const [sort, setSort] = useState<{field: SortField; direction: SortDirection}>({field: initialData.sort.field, direction: initialData.sort.direction});
+  const [pagination, setPagination] = useState<Pagination>(initialData.pagination);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -144,6 +144,17 @@ export function UserManagement({currentUserId}: {currentUserId?: string}) {
 
   const requestIdRef = useRef(0);
   const paginationRef = useRef(pagination);
+  const lastAppliedSignatureRef = useRef(
+    querySignature({
+      page: initialData.pagination.page,
+      pageSize: initialData.pagination.pageSize,
+      query: "",
+      role: "ALL",
+      status: "ALL",
+      sort: initialData.sort.field,
+      direction: initialData.sort.direction,
+    }),
+  );
 
   useEffect(() => {
     paginationRef.current = pagination;
@@ -168,6 +179,15 @@ export function UserManagement({currentUserId}: {currentUserId?: string}) {
       }
       setUsers(result.users);
       setPagination(result.pagination);
+      lastAppliedSignatureRef.current = querySignature({
+        page: result.pagination.page,
+        pageSize,
+        query: debouncedQuery,
+        role: roleFilter,
+        status: statusFilter,
+        sort: sort.field,
+        direction: sort.direction,
+      });
       setPage((current) => (current === result.pagination.page ? current : result.pagination.page));
       return true;
     } catch {
@@ -189,10 +209,21 @@ export function UserManagement({currentUserId}: {currentUserId?: string}) {
   }, [query]);
 
   useEffect(() => {
-    // Refetch when the page changes; setState happens after the awaited request resolves.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // The mount query is already applied server-side through initialData; only a
+    // real change to page/filters/sort triggers a client-side refetch.
+    const signature = querySignature({
+      page,
+      pageSize,
+      query: debouncedQuery,
+      role: roleFilter,
+      status: statusFilter,
+      sort: sort.field,
+      direction: sort.direction,
+    });
+    if (signature === lastAppliedSignatureRef.current) return;
+    lastAppliedSignatureRef.current = signature;
     void loadUsers(page);
-  }, [page, loadUsers]);
+  }, [page, pageSize, debouncedQuery, roleFilter, statusFilter, sort.field, sort.direction, loadUsers]);
 
   function toggleExpand(id: string) {
     setExpandedIds((prev) => {
