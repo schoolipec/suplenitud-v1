@@ -107,7 +107,8 @@ const profileSettings = source("src/components/admin/ProfileSettings.tsx");
 assert.match(profileSettings, /Receive prayer requests via Telegram/);
 assert.match(profileSettings, /Receive prayer request email copies/);
 const usersPage = source("src/app/admin/users/page.tsx");
-assert.match(usersPage, /prayerTelegramAlertsEnabled: true/);
+assert.match(usersPage, /<UserManagement currentUserId=\{session\.user\.id\}/);
+assert.ok(!usersPage.includes("prisma.user.findMany"), "users page delegates to server-side pagination instead of preloading the table");
 
 // Public form unchanged: name + message only
 const form = source("src/components/prayer/PrayerForm.tsx");

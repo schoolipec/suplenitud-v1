@@ -535,7 +535,9 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
 .admin-pagination-btn:disabled { opacity: .5; cursor: not-allowed; }
 .admin-pagination-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .admin-pagination-status { color: var(--muted); font-size: .9rem; }
-.admin-table-th.sortable { cursor: pointer; user-select: none; }
-.admin-table-th.sortable:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-.admin-table-th.active { color: var(--ink); }
-.admin-table-th-indicator { margin-left: .35rem; font-size: .8rem; color: var(--muted); }
+.admin-sort-button { display: inline-flex; align-items: center; gap: .3rem; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.admin-sort-button:hover { color: var(--green); }
+.admin-sort-button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: .25rem; }
+.admin-sort-button.is-active { color: var(--green); }
+.admin-sort-indicator { font-size: .8rem; color: var(--muted); }
+.admin-sort-button.is-active .admin-sort-indicator { color: var(--green); }

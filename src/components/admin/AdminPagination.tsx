@@ -1,7 +1,5 @@
 "use client";
 
-import {useCallback} from "react";
-
 type Pagination = {
   page: number;
   pageSize: number;

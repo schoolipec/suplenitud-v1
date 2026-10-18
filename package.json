@@ -11,6 +11,7 @@
     "prisma:generate": "prisma generate",
     "admin:bootstrap": "tsx scripts/bootstrap-superadmin.mts",
     "verify:admin-users": "tsx scripts/verify-admin-users-api.mts",
+    "verify:admin-users-pagination": "tsx scripts/verify-admin-users-pagination.mts",
     "verify:prayer-contact": "tsx scripts/verify-prayer-contact.mts",
     "verify:prayer-queue": "tsx scripts/verify-prayer-queue.mts",
     "verify:prayer-alert-recipients": "tsx scripts/verify-prayer-alert-recipients.mts",

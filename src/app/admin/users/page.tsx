@@ -20,5 +20,5 @@ export default async function UsersPage() {
   if (user.mustChangePassword) redirect("/admin/change-password");
   const roles = user.roles.map(({role}) => role);
   if (!canManageUsers(roles)) redirect("/admin?error=unauthorized");
-  return <AdminFrame roles={roles}><UserManagement initialUsers={[]} currentUserId={session.user.id} /></AdminFrame>;
+  return <AdminFrame roles={roles}><UserManagement currentUserId={session.user.id} /></AdminFrame>;
 }

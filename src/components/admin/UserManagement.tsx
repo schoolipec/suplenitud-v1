@@ -1,7 +1,6 @@
-
 "use client";
 
-import {FormEvent, useEffect, useState} from "react";
+import {FormEvent, useCallback, useEffect, useRef, useState} from "react";
 import {
   IconBan,
   IconCheck,
@@ -31,6 +30,12 @@ type ManagedUser = {
   prayerTelegramAlertsEnabled: boolean;
   prayerEmailCopiesEnabled: boolean;
 };
+
+type SortField = "createdAt" | "name" | "email" | "active";
+type SortDirection = "asc" | "desc";
+type Pagination = {page: number; pageSize: number; totalItems: number; totalPages: number};
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: "Super admin",
@@ -67,55 +72,145 @@ function invitationResultCopy(result: {email: string; emailSent: boolean; mode: 
   };
 }
 
-export function UserManagement({initialUsers = [], currentUserId}: {initialUsers?: ManagedUser[]; currentUserId?: string}) {
-  const [users, setUsers] = useState<ManagedUser[]>(initialUsers);
+async function requestUsers(params: {
+  page: number;
+  pageSize: number;
+  query: string;
+  role: string;
+  status: string;
+  sort: SortField;
+  direction: SortDirection;
+}): Promise<{users: ManagedUser[]; pagination: Pagination} | null> {
+  const search = new URLSearchParams();
+  search.set("page", String(params.page));
+  search.set("pageSize", String(params.pageSize));
+  if (params.query.trim()) search.set("query", params.query.trim());
+  if (params.role !== "ALL") search.set("role", params.role);
+  if (params.status !== "ALL") search.set("status", params.status);
+  search.set("sort", params.sort);
+  search.set("direction", params.direction);
+  const response = await fetch(`/api/admin/users?${search.toString()}`, {cache: "no-store"});
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(data?.users) || !data?.pagination) return null;
+  return {users: data.users, pagination: data.pagination};
+}
+
+function SortHeader({
+  label,
+  field,
+  sort,
+  onSort,
+  className,
+}: {
+  label: string;
+  field: SortField;
+  sort: {field: SortField; direction: SortDirection};
+  onSort: (field: SortField) => void;
+  className?: string;
+}) {
+  const active = sort.field === field;
+  const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : "none";
+  return (
+    <th scope="col" className={className} aria-sort={ariaSort}>
+      <button type="button" className={`admin-sort-button${active ? " is-active" : ""}`} onClick={() => onSort(field)}>
+        <span>{label}</span>
+        <span aria-hidden className="admin-sort-indicator">{active ? (sort.direction === "asc" ? "▲" : "▼") : "↕"}</span>
+        <span className="admin-sr-only">
+          {active ? (sort.direction === "asc" ? "sorted ascending" : "sorted descending") : "not sorted"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
+export function UserManagement({currentUserId}: {currentUserId?: string}) {
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [sort, setSort] = useState<{field: SortField; direction: SortDirection}>({field: "createdAt", direction: "desc"});
+  const [pagination, setPagination] = useState<Pagination>({page: 1, pageSize: 25, totalItems: 0, totalPages: 1});
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<{id: string; action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke"} | null>(null);
   const [saving, setSaving] = useState(false);
   const [resultModal, setResultModal] = useState<{email: string; emailSent: boolean; emailReason?: string | null; mode: "create" | "resend"} | null>(null);
-  const [pagination, setPagination] = useState({page: 1, pageSize: 25, totalItems: 0, totalPages: 1});
-  const [sort, setSort] = useState<{field: "createdAt" | "name" | "email" | "active"; direction: "asc" | "desc"}>({field: "createdAt", direction: "desc"});
 
-  async function loadUsers(page = 1): Promise<boolean> {
-    setLoading(true);
+  const requestIdRef = useRef(0);
+  const paginationRef = useRef(pagination);
+
+  useEffect(() => {
+    paginationRef.current = pagination;
+  }, [pagination]);
+
+  const loadUsers = useCallback(async (targetPage = paginationRef.current.page): Promise<boolean> => {
+    const requestId = ++requestIdRef.current;
     try {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("pageSize", String(pagination.pageSize));
-      if (query.trim()) params.set("query", query.trim());
-      if (roleFilter !== "ALL") params.set("role", roleFilter);
-      if (statusFilter !== "ALL") params.set("status", statusFilter);
-      params.set("sort", sort.field);
-      params.set("direction", sort.direction);
-      const response = await fetch(`/api/admin/users?${params.toString()}`, {cache: "no-store"});
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !Array.isArray(data?.users) || !data?.pagination) {
+      const result = await requestUsers({
+        page: targetPage,
+        pageSize,
+        query: debouncedQuery,
+        role: roleFilter,
+        status: statusFilter,
+        sort: sort.field,
+        direction: sort.direction,
+      });
+      if (requestId !== requestIdRef.current) return false;
+      if (!result) {
         setMessage("The user list could not be loaded.");
         return false;
       }
-      setUsers(data.users);
-      setPagination(data.pagination);
+      setUsers(result.users);
+      setPagination(result.pagination);
+      setPage((current) => (current === result.pagination.page ? current : result.pagination.page));
       return true;
     } catch {
-      setMessage("The user list could not be loaded.");
+      if (requestId === requestIdRef.current) setMessage("The user list could not be loaded.");
       return false;
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
-  }  function toggleExpand(id: string) {
+  }, [debouncedQuery, pageSize, roleFilter, statusFilter, sort.field, sort.direction]);
+
+  function reload(targetPage: number) {
+    setLoading(true);
+    void loadUsers(targetPage);
+  }
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedQuery(query), 300);
+    return () => window.clearTimeout(handle);
+  }, [query]);
+
+  useEffect(() => {
+    // Refetch when the page changes; setState happens after the awaited request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadUsers(page);
+  }, [page, loadUsers]);
+
+  function toggleExpand(id: string) {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+  }
+
+  function handleSort(field: SortField) {
+    setLoading(true);
+    setSort((current) =>
+      current.field === field
+        ? {field, direction: current.direction === "asc" ? "desc" : "asc"}
+        : {field, direction: field === "createdAt" ? "desc" : "asc"},
+    );
+    setPage(1);
   }
 
   async function onCreate(event: FormEvent<HTMLFormElement>) {
@@ -147,7 +242,8 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
     setCreating(false);
     // The result modal is shown first so a failed refresh never hides the outcome.
     setResultModal({email, emailSent: Boolean(data.emailSent), emailReason: data.emailReason, mode: "create"});
-    const refreshed = await loadUsers(1);
+    setLoading(true);
+    const refreshed = await loadUsers();
     if (!refreshed) {
       const now = new Date();
       const newUser: ManagedUser = {
@@ -200,10 +296,12 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
         mode: "resend",
       });
       // Refresh best-effort; the resend already rotated the token server-side.
-      await loadUsers(1);
+      setLoading(true);
+      await loadUsers(pagination.page);
     } else {
       setMessage("Invitation revoked. The pending link no longer works.");
-      await loadUsers(1);
+      setLoading(true);
+      await loadUsers(pagination.page);
     }
   }
 
@@ -230,7 +328,8 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
     }
     setEditingId(null);
     setMessage("User updated.");
-    await loadUsers(1);
+    setLoading(true);
+    await loadUsers(pagination.page);
   }
 
   async function runRowAction(id: string, action: "deactivate" | "activate" | "forcePassword") {
@@ -256,10 +355,9 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
           ? "User deactivated. They can no longer sign in."
           : "User reactivated.",
     );
-    await loadUsers(1);
+    setLoading(true);
+    await loadUsers(pagination.page);
   }
-
-  const editingUser = editingId ? users.find((user) => user.id === editingId) ?? null : null;
 
   return (
     <div className="admin-users">
@@ -270,7 +368,7 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
             <p>Accounts and access roles for the platform.</p>
           </div>
           <div className="admin-section-actions">
-            <button type="button" className="admin-button-secondary" onClick={()=>loadUsers(1)} disabled={loading}>
+            <button type="button" className="admin-button-secondary" onClick={() => reload(pagination.page)} disabled={loading}>
               <IconRefresh size={17} aria-hidden />
               {loading ? "Refreshing…" : "Refresh"}
             </button>
@@ -312,30 +410,30 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
           </div>
         ) : null}
 
-        {editingUser ? (
+        {editingId ? (
           <div className="admin-panel-box">
-            <h3>Edit {editingUser.name}</h3>
+            <h3>Edit {editingId ? users.find((u) => u.id === editingId)?.name ?? "" : ""}</h3>
             <form onSubmit={onEdit} className="admin-auth-form admin-form-grid">
               <div>
                 <label htmlFor="edit-user-name">Name</label>
-                <input id="edit-user-name" name="name" defaultValue={editingUser.name} required minLength={2} />
+                <input id="edit-user-name" name="name" defaultValue={editingId ? users.find((u) => u.id === editingId)?.name ?? "" : ""} required minLength={2} />
               </div>
               <div>
                 <label htmlFor="edit-user-role">Role</label>
-                {editingUser.roles.includes("SUPER_ADMIN") ? (
+                {(users.find((u) => u.id === editingId)?.roles ?? []).includes("SUPER_ADMIN") ? (
                   <>
                     <input value="Super admin" readOnly aria-readonly="true" />
                     <p className="admin-field-note">The Super admin role cannot be changed from this screen.</p>
                   </>
                 ) : (
-                  <select id="edit-user-role" name="role" defaultValue={editingUser.roles[0] ?? "ADMIN"}>
+                  <select id="edit-user-role" name="role" defaultValue={(users.find((u) => u.id === editingId)?.roles ?? [])[0] ?? "ADMIN"}>
                     <option value="ADMIN">Admin</option>
                     <option value="TREASURER">Treasurer</option>
                     <option value="USHER">Usher — no panel access</option>
                   </select>
                 )}
               </div>
-              {!editingUser.roles.includes("SUPER_ADMIN") && editingUser.roles.includes("ADMIN") ? (
+              {editingId && !(users.find((u) => u.id === editingId)?.roles ?? []).includes("SUPER_ADMIN") && (users.find((u) => u.id === editingId)?.roles ?? []).includes("ADMIN") ? (
                 <div className="admin-alert-preferences">
                   <h4>Alertas de peticiones de oración</h4>
                   <p className="admin-field-note">El usuario activa sus propios avisos desde Settings. Aquí puede ajustarlos por él.</p>
@@ -343,7 +441,7 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
                     <input
                       type="checkbox"
                       name="prayerTelegramAlertsEnabled"
-                      defaultChecked={editingUser.prayerTelegramAlertsEnabled}
+                      defaultChecked={users.find((u) => u.id === editingId)?.prayerTelegramAlertsEnabled ?? false}
                       disabled={saving}
                     />
                     <span>
@@ -355,7 +453,7 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
                     <input
                       type="checkbox"
                       name="prayerEmailCopiesEnabled"
-                      defaultChecked={editingUser.prayerEmailCopiesEnabled}
+                      defaultChecked={users.find((u) => u.id === editingId)?.prayerEmailCopiesEnabled ?? false}
                       disabled={saving}
                     />
                     <span>
@@ -379,11 +477,29 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
           <div className="admin-toolbar-search">
             <IconSearch size={17} aria-hidden />
             <label htmlFor="user-search" className="admin-sr-only">Search users by name or email</label>
-            <input id="user-search" type="search" placeholder="Search by name or email…" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <input
+              id="user-search"
+              type="search"
+              placeholder="Search by name or email…"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setLoading(true);
+                setPage(1);
+              }}
+            />
           </div>
           <div className="admin-toolbar-filters">
             <label htmlFor="user-role-filter" className="admin-sr-only">Filter by role</label>
-            <select id="user-role-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
+            <select
+              id="user-role-filter"
+              value={roleFilter}
+              onChange={(event) => {
+                setRoleFilter(event.target.value);
+                setLoading(true);
+                setPage(1);
+              }}
+            >
               <option value="ALL">All roles</option>
               <option value="SUPER_ADMIN">Super admin</option>
               <option value="ADMIN">Admin</option>
@@ -391,10 +507,32 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
               <option value="USHER">Usher</option>
             </select>
             <label htmlFor="user-status-filter" className="admin-sr-only">Filter by status</label>
-            <select id="user-status-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <select
+              id="user-status-filter"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setLoading(true);
+                setPage(1);
+              }}
+            >
               <option value="ALL">All statuses</option>
               <option value="active">Active</option>
               <option value="inactive">Deactivated</option>
+            </select>
+            <label htmlFor="user-page-size">Rows</label>
+            <select
+              id="user-page-size"
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setLoading(true);
+                setPage(1);
+              }}
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>{size}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -403,12 +541,14 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
           <table className="admin-data-table">
             <thead>
               <tr>
-                <th>User</th>
-                <th className="admin-col-role">Role</th>
-                <th>Status</th>
-                <th className="admin-col-2fa">Two-factor</th>
-                <th className="admin-col-activity">Activity</th>
-                <th><span className="admin-sr-only">Actions</span></th>
+                <SortHeader label="Name" field="name" sort={sort} onSort={handleSort} />
+                <SortHeader label="Email" field="email" sort={sort} onSort={handleSort} />
+                <th scope="col" className="admin-col-role">Role</th>
+                <SortHeader label="Status" field="active" sort={sort} onSort={handleSort} />
+                <th scope="col" className="admin-col-2fa">Two-factor</th>
+                <SortHeader label="Created" field="createdAt" sort={sort} onSort={handleSort} />
+                <th scope="col" className="admin-col-activity">Activity</th>
+                <th scope="col"><span className="admin-sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -434,7 +574,7 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
               })}
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={8}>
                     <div className="admin-empty">
                       <p>No users match the current filters.</p>
                     </div>
@@ -443,8 +583,14 @@ export function UserManagement({initialUsers = [], currentUserId}: {initialUsers
               ) : null}
             </tbody>
           </table>
-        <AdminPagination pagination={pagination} onPageChange={(p)=>loadUsers(p)} disabled={loading} />
-
+          <AdminPagination
+          pagination={pagination}
+          onPageChange={(target) => {
+            setLoading(true);
+            setPage(target);
+          }}
+          disabled={loading}
+        />
         </div>
       </section>
 
@@ -496,19 +642,15 @@ function UserRow({
   onEdit: () => void;
   onConfirm: (action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke") => void;
   onCancelConfirm: () => void;
-  onRunAction: (id: string, action: "deactivate" | "activate" | "forcePassword") => Promise<void>;
-  onRunInvitationAction: (id: string, action: "resend" | "revoke") => Promise<void>;
+  onRunAction: (id: string, action: "deactivate" | "activate" | "forcePassword") => void;
+  onRunInvitationAction: (id: string, action: "resend" | "revoke") => void;
 }) {
   const confirmForThisRow = confirming?.id === user.id ? confirming : null;
   return (
     <>
-      <tr className={expanded ? "is-expanded" : ""}>
-        <td data-label="User">
-          <div className="admin-user-cell">
-            <strong>{user.name}</strong>
-            <span>{user.email}</span>
-          </div>
-        </td>
+      <tr>
+        <td data-label="Name">{user.name}</td>
+        <td data-label="Email">{user.email}</td>
         <td data-label="Role" className="admin-col-role">
           <span className="admin-badge">{user.roles.map((role) => roleLabels[role] ?? role).join(", ")}</span>
         </td>
@@ -527,6 +669,7 @@ function UserRow({
             {user.twoFactorEnabled ? "Active" : "Not configured"}
           </span>
         </td>
+        <td data-label="Created">{formatDate(user.createdAt)}</td>
         <td data-label="Activity" className="admin-col-activity">
           <span className="admin-activity-cell">Last: {formatDate(user.lastActivityAt)}</span>
         </td>
@@ -575,17 +718,7 @@ function UserRow({
                 {confirmForThisRow?.action === "resend" ? (
                   <span className="admin-confirm-inline">
                     <span>Resend invitation? The previous link stops working.</span>
-                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunInvitationAction(user.id, "resend")} aria-label="Confirm invitation resend">
-                      <IconCheck size={17} aria-hidden />
-                    </button>
-                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
-                      <IconBan size={17} aria-hidden />
-                    </button>
-                  </span>
-                ) : confirmForThisRow?.action === "revoke" ? (
-                  <span className="admin-confirm-inline">
-                    <span>Revoke invitation?</span>
-                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunInvitationAction(user.id, "revoke")} aria-label="Confirm invitation revoke">
+                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunInvitationAction(user.id, "resend")} aria-label="Confirm resend invitation">
                       <IconCheck size={17} aria-hidden />
                     </button>
                     <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
@@ -593,8 +726,18 @@ function UserRow({
                     </button>
                   </span>
                 ) : null}
-                {!confirmForThisRow || confirmForThisRow.action === "deactivate" || confirmForThisRow.action === "activate" ? (
-                  confirmForThisRow?.action === "deactivate" ? (
+                {confirmForThisRow?.action === "revoke" ? (
+                  <span className="admin-confirm-inline">
+                    <span>Revoke invitation? The previous link stops working.</span>
+                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunInvitationAction(user.id, "revoke")} aria-label="Confirm revoke invitation">
+                      <IconCheck size={17} aria-hidden />
+                    </button>
+                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
+                      <IconBan size={17} aria-hidden />
+                    </button>
+                  </span>
+                ) : null}
+                {confirmForThisRow?.action === "deactivate" ? (
                   <span className="admin-confirm-inline">
                     <span>Deactivate?</span>
                     <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunAction(user.id, "deactivate")} aria-label="Confirm deactivation">
@@ -604,7 +747,8 @@ function UserRow({
                       <IconBan size={17} aria-hidden />
                     </button>
                   </span>
-                ) : confirmForThisRow?.action === "activate" ? (
+                ) : null}
+                {confirmForThisRow?.action === "activate" ? (
                   <span className="admin-confirm-inline">
                     <span>Reactivate?</span>
                     <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunAction(user.id, "activate")} aria-label="Confirm reactivation">
@@ -614,7 +758,8 @@ function UserRow({
                       <IconBan size={17} aria-hidden />
                     </button>
                   </span>
-                ) : (
+                ) : null}
+                {!confirmForThisRow ? (
                   <button
                     type="button"
                     className="admin-icon-button"
@@ -624,7 +769,7 @@ function UserRow({
                   >
                     {user.active ? <IconUserOff size={17} aria-hidden /> : <IconUserCheck size={17} aria-hidden />}
                   </button>
-                )) : null}
+                ) : null}
               </>
             ) : (
               <span className="admin-self-badge">You</span>
@@ -637,7 +782,7 @@ function UserRow({
       </tr>
       {expanded ? (
         <tr className="admin-detail-row">
-          <td colSpan={6}>
+          <td colSpan={8}>
             <dl className="admin-user-detail">
               <div><dt>Created</dt><dd>{formatDate(user.createdAt)}</dd></div>
               <div><dt>Last activity</dt><dd>{formatDate(user.lastActivityAt)}</dd></div>
