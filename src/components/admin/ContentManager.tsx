@@ -164,7 +164,9 @@ function BlockEditor({
   const [expandedRevisions, setExpandedRevisions] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [imageAlt, setImageAlt] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const previewHtml = useMemo(() => renderSafeHtml(source), [source]);
   const publishedSource = block.published.find((entry) => entry.locale === locale)?.source ?? null;
@@ -254,7 +256,7 @@ function BlockEditor({
 
   async function uploadImage(file: File | null) {
     if (!file) return;
-    const alt = window.prompt("Alternative text for this image (required):")?.trim();
+    const alt = imageAlt.trim();
     if (!alt) {
       setUploadError("An alternative text description is required. The image was not uploaded.");
       return;
@@ -278,6 +280,7 @@ function BlockEditor({
         const markup = `![${alt}](${data.url})`;
         return {value: `${value.slice(0, start)}${markup}${value.slice(end)}`, start, end: start + markup.length};
       });
+      setImageAlt("");
     } finally {
       setUploading(false);
     }
@@ -322,18 +325,16 @@ function BlockEditor({
             <ToolbarButton label="B" title="Bold" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("**", "**", "bold text"))} />
             <ToolbarButton label="I" title="Italic" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("*", "*", "italic text"))} />
             <ToolbarButton label="Link" title="Link (https only)" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("[", "](https://example.com)", "link text"))} />
-            <label className="admin-button-secondary admin-button-small" title="Upload and insert image">
+            <button type="button" className="admin-button-secondary admin-button-small" disabled={uploading || imageAlt.trim().length === 0} onClick={() => imageInputRef.current?.click()}>
               {uploading ? "Uploading…" : "Image"}
-              <input
-                className="admin-sr-only"
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                disabled={uploading}
-                onChange={(event) => { void uploadImage(event.currentTarget.files?.[0] ?? null); event.currentTarget.value = ""; }}
-              />
-            </label>
+            </button>
             <ToolbarButton label="List" title="Bulleted list" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("- "))} />
             <ToolbarButton label="Quote" title="Quote" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("> "))} />
+          </div>
+          <div className="admin-form-row">
+            <label htmlFor="content-image-alt">Image alternative text</label>
+            <input id="content-image-alt" value={imageAlt} onChange={(event) => setImageAlt(event.target.value)} placeholder="Describe the image" />
+            <input ref={imageInputRef} className="admin-sr-only" type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { void uploadImage(event.currentTarget.files?.[0] ?? null); event.currentTarget.value = ""; }} />
           </div>
           {uploadError ? <p className="admin-status-message" role="alert">{uploadError}</p> : null}
           <label className="admin-sr-only" htmlFor="content-source">Draft source ({locale})</label>
