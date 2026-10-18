@@ -19,7 +19,8 @@
     "verify:donations": "tsx scripts/verify-donations.mts",
     "verify:square-offering": "tsx scripts/verify-square-offering.mts",
     "verify:content-editor": "tsx scripts/verify-content-editor.mts",
-    "verify:admin-shell": "tsx scripts/verify-admin-shell.mts"
+    "verify:admin-shell": "tsx scripts/verify-admin-shell.mts",
+    "verify:admin-analytics-overview": "tsx scripts/verify-admin-analytics-overview.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

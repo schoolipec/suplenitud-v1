@@ -512,3 +512,18 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   .offering { grid-template-columns: 1fr; }
   .button.secondary.offering-cta { justify-self: stretch; text-align: center; }
 }
+
+.admin-section-actions .admin-action-link { gap: .4rem; margin-top: 0; }
+.admin-overview-visits .admin-summary-grid { margin-top: 1rem; }
+.admin-summary-card .admin-card-icon { display: inline-flex; }
+.admin-summary-card strong.admin-overview-value { font-size: 1.15rem; line-height: 1.35; overflow-wrap: anywhere; }
+.admin-overview-chart { margin-top: 1.35rem; }
+.admin-overview-chart h3 { margin: 0 0 .75rem; font-size: 1rem; }
+.admin-bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 150px; padding-top: .5rem; border-bottom: 1px solid var(--line); }
+.admin-bar { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; }
+.admin-bar-fill { width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--green), color-mix(in srgb, var(--green) 55%, var(--lime))); }
+.admin-bar:hover .admin-bar-fill { background: var(--navy); }
+@media (max-width: 760px) {
+  .admin-bar-chart { height: 110px; gap: 1px; }
+  .admin-summary-card strong.admin-overview-value { font-size: 1.05rem; }
+}

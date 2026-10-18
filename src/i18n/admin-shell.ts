@@ -48,6 +48,21 @@ export type AdminMessages = {
     bell: string;
   };
   mobile: {openMenu: string; closeMenu: string};
+  overview: {
+    title: string;
+    subtitle: string;
+    pageViews: string;
+    uniqueSessions: string;
+    topPage: string;
+    topCountry: string;
+    geoUnavailable: string;
+    noVisits: string;
+    viewDetailed: string;
+    dailyTitle: string;
+    dailyCaption: string;
+    tableDate: string;
+    tableViews: string;
+  };
   languageNames: Record<AdminLocale, string>;
   roles: Record<string, string>;
   notificationTypes: Record<string, string>;
@@ -108,6 +123,21 @@ export const adminMessages: Record<AdminLocale, AdminMessages> = {
       bell: "Notifications",
     },
     mobile: {openMenu: "Open menu", closeMenu: "Close menu"},
+    overview: {
+      title: "Public visits - last 30 days",
+      subtitle: "Aggregate public analytics. No IPs, sessions, profiles, user agents or precise locations.",
+      pageViews: "Page views",
+      uniqueSessions: "Unique sessions",
+      topPage: "Top page",
+      topCountry: "Top country",
+      geoUnavailable: "Geography unavailable (GeoLite2 not configured)",
+      noVisits: "No public visits in the last 30 days.",
+      viewDetailed: "View detailed visits",
+      dailyTitle: "Page views per day",
+      dailyCaption: "Page views per day for the last 30 days",
+      tableDate: "Date",
+      tableViews: "Page views",
+    },
     languageNames: {en: "English", es: "Español"},
     roles: {SUPER_ADMIN: "Super admin", ADMIN: "Admin", TREASURER: "Treasurer"},
     notificationTypes: {
@@ -171,6 +201,21 @@ export const adminMessages: Record<AdminLocale, AdminMessages> = {
       bell: "Notificaciones",
     },
     mobile: {openMenu: "Abrir menú", closeMenu: "Cerrar menú"},
+    overview: {
+      title: "Visitas públicas - últimos 30 días",
+      subtitle: "Analítica pública agregada. Sin IPs, sesiones, perfiles, agentes de usuario ni ubicaciones precisas.",
+      pageViews: "Vistas de página",
+      uniqueSessions: "Sesiones únicas",
+      topPage: "Página principal",
+      topCountry: "País principal",
+      geoUnavailable: "Geografía no disponible (GeoLite2 no configurado)",
+      noVisits: "No hay visitas públicas en los últimos 30 días.",
+      viewDetailed: "Ver visitas detalladas",
+      dailyTitle: "Vistas de página por día",
+      dailyCaption: "Vistas de página por día en los últimos 30 días",
+      tableDate: "Fecha",
+      tableViews: "Vistas de página",
+    },
     languageNames: {en: "English", es: "Español"},
     roles: {SUPER_ADMIN: "Superadministrador", ADMIN: "Administrador", TREASURER: "Tesorero"},
     notificationTypes: {
