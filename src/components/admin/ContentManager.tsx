@@ -162,6 +162,8 @@ function BlockEditor({
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState<"publish" | "unpublish" | string | null>(null);
   const [expandedRevisions, setExpandedRevisions] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const previewHtml = useMemo(() => renderSafeHtml(source), [source]);
@@ -250,6 +252,37 @@ function BlockEditor({
     await onChanged();
   }
 
+  async function uploadImage(file: File | null) {
+    if (!file) return;
+    const alt = window.prompt("Alternative text for this image (required):")?.trim();
+    if (!alt) {
+      setUploadError("An alternative text description is required. The image was not uploaded.");
+      return;
+    }
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      const response = await fetch("/api/admin/media", {method: "POST", body: form});
+      const data = await response.json().catch(() => null) as {url?: string; error?: string} | null;
+      if (!response.ok || !data?.url) {
+        setUploadError(
+          data?.error === "too_large" ? "Images must be 2 MB or smaller."
+            : data?.error === "storage_unconfigured" ? "Image uploads are not configured in this environment yet."
+              : "The image could not be uploaded. Use a valid PNG, JPEG or WebP image.",
+        );
+        return;
+      }
+      insertAtCursor(textareaRef.current, setSource, (value, start, end) => {
+        const markup = `![${alt}](${data.url})`;
+        return {value: `${value.slice(0, start)}${markup}${value.slice(end)}`, start, end: start + markup.length};
+      });
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <section className="admin-section">
       <div className="admin-section-heading">
@@ -289,9 +322,20 @@ function BlockEditor({
             <ToolbarButton label="B" title="Bold" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("**", "**", "bold text"))} />
             <ToolbarButton label="I" title="Italic" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("*", "*", "italic text"))} />
             <ToolbarButton label="Link" title="Link (https only)" onInsert={() => insertAtCursor(textareaRef.current, setSource, wrapSelection("[", "](https://example.com)", "link text"))} />
-                <ToolbarButton label="List" title="Bulleted list" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("- "))} />
+            <label className="admin-button-secondary admin-button-small" title="Upload and insert image">
+              {uploading ? "Uploading…" : "Image"}
+              <input
+                className="admin-sr-only"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                disabled={uploading}
+                onChange={(event) => { void uploadImage(event.currentTarget.files?.[0] ?? null); event.currentTarget.value = ""; }}
+              />
+            </label>
+            <ToolbarButton label="List" title="Bulleted list" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("- "))} />
             <ToolbarButton label="Quote" title="Quote" onInsert={() => insertAtCursor(textareaRef.current, setSource, prefixLines("> "))} />
           </div>
+          {uploadError ? <p className="admin-status-message" role="alert">{uploadError}</p> : null}
           <label className="admin-sr-only" htmlFor="content-source">Draft source ({locale})</label>
           <textarea
             id="content-source"

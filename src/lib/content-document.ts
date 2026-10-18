@@ -22,13 +22,23 @@ function renderMarks(text: string): string {
 }
 
 function renderInline(text: string): string {
-  const linkPattern = /\[([^\[\]\n]+)\]\((https?:\/\/[^\s<>"']+)\)/gi;
+  const tokenPattern = /!\[([^\[\]\n]*)\]\(([^()\s]*)\)|\[([^\[\]\n]+)\]\((https?:\/\/[^\s<>"']+)\)/gi;
   let result = "";
   let cursor = 0;
   let match: RegExpExecArray | null;
-  while ((match = linkPattern.exec(text)) !== null) {
+  while ((match = tokenPattern.exec(text)) !== null) {
     result += renderMarks(text.slice(cursor, match.index));
-    result += `<a href="${escapeHtml(match[2])}" rel="noopener noreferrer">${escapeHtml(match[1])}</a>`;
+    if (match[1] !== undefined) {
+      const alt = match[1];
+      const url = match[2];
+      // Only a local, registered media URL with alt text becomes an image;
+      // anything else (external, data, malformed) stays inert text.
+      result += alt.trim().length > 0 && isLocalMediaUrl(url)
+        ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy" />`
+        : escapeHtml(match[0]);
+    } else {
+      result += `<a href="${escapeHtml(match[4])}" rel="noopener noreferrer">${escapeHtml(match[3])}</a>`;
+    }
     cursor = match.index + match[0].length;
   }
   result += renderMarks(text.slice(cursor));
@@ -112,6 +122,14 @@ export function renderSafeHtml(source: string): string {
 const RAW_HTML_PATTERN = /<[A-Za-z!/]/;
 const DANGEROUS_SCHEME_PATTERN = /(javascript|vbscript|data)\s*:/i;
 const BAD_LINK_PATTERN = /\[[^\[\]\n]*\]\((?![Hh][Tt][Tt][Pp][Ss]?:\/\/)[^)\s]*\)/;
+const IMAGE_TOKEN_PATTERN = /!\[([^\[\]\n]*)\]\(([^()\s]*)\)/g;
+/** Local, opaque media route only: `/media/<uuid>`. Nothing else is an image. */
+const LOCAL_MEDIA_URL_PATTERN = /^\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** True only for `/media/<uuid>`; rejects remote, data and traversal targets. */
+export function isLocalMediaUrl(value: string): boolean {
+  return LOCAL_MEDIA_URL_PATTERN.test(value);
+}
 
 export function validateDocument(source: unknown): {ok: boolean; errors: string[]} {
   const errors: string[] = [];
@@ -119,6 +137,13 @@ export function validateDocument(source: unknown): {ok: boolean; errors: string[
     return {ok: false, errors: ["empty"]};
   }
   if (source.length > MAX_SOURCE_LENGTH) errors.push("too_long");
+  // Images are pulled out first so their brackets are never mistaken for links.
+  const withoutImages = source.replace(IMAGE_TOKEN_PATTERN, (_match, alt: string, url: string) => {
+    if (alt.trim().length === 0) errors.push("missing_image_alt");
+    if (!isLocalMediaUrl(url)) errors.push("invalid_image_url");
+    return "";
+  });
+  if (withoutImages.includes("![")) errors.push("invalid_image");
   for (const line of source.split("\n")) {
     if (line.length > MAX_LINE_LENGTH) {
       errors.push("line_too_long");
@@ -128,7 +153,7 @@ export function validateDocument(source: unknown): {ok: boolean; errors: string[
     if (RAW_HTML_PATTERN.test(line)) errors.push("raw_html");
   }
   if (DANGEROUS_SCHEME_PATTERN.test(source)) errors.push("dangerous_url");
-  if (BAD_LINK_PATTERN.test(source)) errors.push("invalid_link");
+  if (BAD_LINK_PATTERN.test(withoutImages)) errors.push("invalid_link");
   return {ok: errors.length === 0, errors: [...new Set(errors)]};
 }
 

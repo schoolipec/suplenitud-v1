@@ -551,3 +551,4 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
 .cms-copy li { margin: .3rem 0; }
 .cms-copy blockquote { margin: 1rem 0; padding: .7rem 1rem; border-left: 3px solid var(--green); background: var(--mist); }
 .cms-copy a { color: var(--green); font-weight: 700; text-decoration: underline; }
+.cms-copy img { display: block; max-width: 100%; height: auto; margin: 1rem 0; border-radius: .75rem; }

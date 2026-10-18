@@ -22,7 +22,8 @@
     "verify:content-editor": "tsx scripts/verify-content-editor.mts",
     "verify:public-content-binding": "tsx scripts/verify-public-content-binding.mts",
     "verify:admin-shell": "tsx scripts/verify-admin-shell.mts",
-    "verify:admin-analytics-overview": "tsx scripts/verify-admin-analytics-overview.mts"
+    "verify:admin-analytics-overview": "tsx scripts/verify-admin-analytics-overview.mts",
+    "verify:cms-media": "tsx scripts/verify-cms-media.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
@@ -36,7 +37,8 @@
     "nodemailer": "^10.1.0",
     "pg": "^8.23.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^20",
