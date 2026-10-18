@@ -68,6 +68,47 @@ export function PrayerRequestsQueue({initialRequests, initialNewCount, initialFi
   const disabled = loading || saving;
   const params = prayerFilterParams(appliedFilters).toString();
   const dirty = prayerFilterParams(filters).toString() !== params;
+
+  async function exportQueleaPdf() {
+    if (disabled || dirty || !params) {
+      setMessage("Aplica filtros antes de exportar (o no hay resultados para los filtros actuales).");
+      return;
+    }
+    try {
+      setLoading(true);
+      setMessage("");
+      const res = await fetch(`/api/admin/prayer-requests/export-quelea`, {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({filters: appliedFilters}),
+      });
+      if (res.status === 400) {
+        try {
+          const data: unknown = await res.json();
+          const err = data && typeof data === "object" ? (data as {error?: string}).error : undefined;
+          if (err === "no_results") {
+            setMessage("No hay peticiones para exportar con los filtros actuales.");
+            return;
+          }
+        } catch {}
+      }
+      if (!res.ok) throw new Error("export_failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const date = new Date().toISOString().slice(0, 10);
+      a.download = `prayer-requests-quelea-${date}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setMessage("No se pudo generar el PDF para Quelea.");
+    } finally {
+      setLoading(false);
+    }
+  }
   function actions(request: PrayerQueueItem) {
     return <div className="admin-row-actions">
       <button type="button" className="admin-button-secondary" onClick={() => setSelected(request)} disabled={disabled}>Ver detalle</button>
@@ -90,7 +131,7 @@ export function PrayerRequestsQueue({initialRequests, initialNewCount, initialFi
         <div className="admin-section-actions">
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={applyFilters}>Actualizar</button>
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/api/admin/prayer-requests/export?${params}`, "_blank", "noopener,noreferrer")}>Exportar CSV</button>
-          <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/api/admin/prayer-requests/export-quelea?${params}`, "_blank", "noopener,noreferrer")}>Exportar PDF para Quelea</button>
+          <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={exportQueleaPdf}>Exportar PDF para Quelea</button>
           <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/admin/prayer-requests/print?${params}`, "_blank", "noopener,noreferrer")}>Vista de impresión</button>
         </div>
       </div>
