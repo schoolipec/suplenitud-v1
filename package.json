@@ -23,7 +23,8 @@
     "verify:public-content-binding": "tsx scripts/verify-public-content-binding.mts",
     "verify:admin-shell": "tsx scripts/verify-admin-shell.mts",
     "verify:admin-analytics-overview": "tsx scripts/verify-admin-analytics-overview.mts",
-    "verify:cms-media": "tsx scripts/verify-cms-media.mts"
+    "verify:cms-media": "tsx scripts/verify-cms-media.mts",
+    "verify:bible-blessing-modal": "tsx scripts/verify-bible-blessing-modal.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

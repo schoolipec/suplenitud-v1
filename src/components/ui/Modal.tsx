@@ -19,6 +19,8 @@ export function Modal({
   closeLabel = "Cerrar",
   showCloseButton = true,
   dismissable = true,
+  contentClassName,
+  overlayClassName,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -28,13 +30,15 @@ export function Modal({
   closeLabel?: string;
   showCloseButton?: boolean;
   dismissable?: boolean;
+  contentClassName?: string;
+  overlayClassName?: string;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="modal-overlay" />
+        <Dialog.Overlay className={overlayClassName ? `modal-overlay ${overlayClassName}` : "modal-overlay"} />
         <Dialog.Content
-          className="modal-content"
+          className={contentClassName ? `modal-content ${contentClassName}` : "modal-content"}
           aria-describedby={description ? undefined : undefined}
           onEscapeKeyDown={dismissable ? undefined : (event) => event.preventDefault()}
           onPointerDownOutside={dismissable ? undefined : (event) => event.preventDefault()}
