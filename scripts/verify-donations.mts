@@ -215,7 +215,7 @@ assert.match(donationsPage, /getPaymentsStatus/);
 assert.ok(!donationsPage.includes("CLIENT_SECRET"));
 assert.ok(!donationsPage.includes("ACCESS_TOKEN"));
 assert.ok(!donationsPage.includes("SIGNATURE_KEY"));
-const navigation = readFileSync(join(root, "src/components/admin/AdminNavigation.tsx"), "utf8");
+const navigation = readFileSync(join(root, "src/components/admin/AdminSidebar.tsx"), "utf8");
 assert.ok(navigation.includes('roles.includes("ADMIN")'));
 
 // Migration: additive only, idempotent webhook ledger
