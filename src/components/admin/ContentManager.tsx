@@ -5,6 +5,7 @@ import {IconCheck, IconChevronDown, IconChevronUp, IconEye} from "@tabler/icons-
 import {REQUIRED_LOCALES} from "@/lib/content-catalog";
 import {renderSafeHtml} from "@/lib/content-document";
 import type {ContentBlockData} from "@/lib/content-types";
+import {useAdminShell} from "@/components/admin/AdminShellProvider";
 
 function ToolbarButton({label, title, onInsert}: {label: string; title: string; onInsert: () => void}) {
   return (
@@ -60,6 +61,8 @@ async function fetchBlocks(): Promise<ContentBlockData[]> {
 }
 
 export function ContentManager({initialBlocks}: {initialBlocks: ContentBlockData[]}) {
+  const {locale: adminLocale} = useAdminShell();
+  const l = adminLocale === "es" ? {reloadError:"No se pudo actualizar la lista. Recarga la página para ver los datos actuales.", title:"Bloques de contenido", intro:"Catálogo fijo con claves estables. La interfaz no crea claves nuevas.", refreshing:"Actualizando…", refresh:"Actualizar", empty:"Aún no hay bloques de contenido. Se inicializan mediante la migración.", published:"Publicado", draft:"Borrador", missing:"Faltan:", complete:"Completo", legacy:"Clave heredada"} : {reloadError:"The list could not be refreshed. Reload the page to see current data.", title:"Content blocks", intro:"Fixed catalog with stable keys. New keys are never created from the UI.", refreshing:"Refreshing…", refresh:"Refresh", empty:"No content blocks yet. They are seeded by migration.", published:"Published", draft:"Draft", missing:"Missing:", complete:"Complete", legacy:"Legacy key"};
   const [blocks, setBlocks] = useState<ContentBlockData[]>(initialBlocks);
   const [selectedId, setSelectedId] = useState<string | null>(initialBlocks[0]?.id ?? null);
   const [locale, setLocale] = useState<string>("en");
@@ -79,7 +82,7 @@ export function ContentManager({initialBlocks}: {initialBlocks: ContentBlockData
       }
       setEditorKey((key) => key + 1);
     } catch {
-      setListMessage("The list could not be refreshed. Reload the page to see current data.");
+      setListMessage(l.reloadError);
     } finally {
       setLoading(false);
     }
@@ -90,18 +93,18 @@ export function ContentManager({initialBlocks}: {initialBlocks: ContentBlockData
       <section className="admin-section">
         <div className="admin-section-heading">
           <div>
-            <h2>Content blocks</h2>
-            <p>Fixed catalog with stable keys. New keys are never created from the UI.</p>
+            <h2>{l.title}</h2>
+            <p>{l.intro}</p>
           </div>
           <div className="admin-section-actions">
             <button type="button" className="admin-button-secondary" onClick={refresh} disabled={loading}>
-              {loading ? "Refreshing…" : "Refresh"}
+              {loading ? l.refreshing : l.refresh}
             </button>
           </div>
         </div>
         {listMessage ? <p className="admin-status-message" role="status">{listMessage}</p> : null}
         {blocks.length === 0 ? (
-          <p className="admin-empty">No content blocks yet. They are seeded by migration.</p>
+          <p className="admin-empty">{l.empty}</p>
         ) : (
           <ul className="content-block-list">
             {blocks.map((block) => (
@@ -115,14 +118,14 @@ export function ContentManager({initialBlocks}: {initialBlocks: ContentBlockData
                   <span className="content-block-key">{block.label}</span>
                   <span className="content-block-meta">
                     <span className={block.status === "PUBLISHED" ? "admin-badge admin-badge-success" : "admin-badge admin-badge-muted"}>
-                      {block.status === "PUBLISHED" ? "Published" : "Draft"}
+                      {block.status === "PUBLISHED" ? l.published : l.draft}
                     </span>
                     {block.missingLocales.length > 0 ? (
-                      <span className="admin-badge admin-badge-danger">Missing: {block.missingLocales.join(", ")}</span>
+                      <span className="admin-badge admin-badge-danger">{l.missing} {block.missingLocales.join(", ")}</span>
                     ) : (
-                      <span className="admin-badge admin-badge-success">Complete</span>
+                      <span className="admin-badge admin-badge-success">{l.complete}</span>
                     )}
-                    {!block.catalogued ? <span className="admin-badge">Legacy key</span> : null}
+                    {!block.catalogued ? <span className="admin-badge">{l.legacy}</span> : null}
                   </span>
                 </button>
               </li>

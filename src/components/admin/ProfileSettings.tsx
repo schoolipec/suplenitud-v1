@@ -1,271 +1,31 @@
 "use client";
 
-import {FormEvent, useState} from "react";
+import {FormEvent, useEffect, useState} from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 import {IconBell, IconCheck, IconLock, IconMail, IconPencil, IconPhone, IconSend, IconShieldCheck} from "@tabler/icons-react";
+import {Modal} from "@/components/ui/Modal";
+import {useAdminShell} from "@/components/admin/AdminShellProvider";
+import {authClient} from "@/lib/auth-client";
 
-type Profile = {
-  name: string;
-  email: string;
-  phone: string | null;
-  whatsapp: string | null;
-  telegramChatId: string | null;
-  twoFactorEnabled: boolean;
-  roles: string[];
-  prayerTelegramAlertsEnabled: boolean;
-  prayerEmailCopiesEnabled: boolean;
-};
-
-const roleLabels: Record<string, string> = {
-  SUPER_ADMIN: "Super admin",
-  ADMIN: "Admin",
-  TREASURER: "Treasurer",
-  USHER: "Usher",
-};
-
-async function saveProfile(payload: Record<string, unknown>) {
-  const response = await fetch("/api/admin/profile", {
-    method: "PATCH",
-    headers: {"content-type": "application/json"},
-    body: JSON.stringify(payload),
-  });
-  return response.ok;
-}
+type Profile = {name: string; email: string; phone: string | null; whatsapp: string | null; telegramChatId: string | null; twoFactorEnabled: boolean; roles: string[]; prayerTelegramAlertsEnabled: boolean; prayerEmailCopiesEnabled: boolean};
+type Editing = "identity" | "email" | "contact" | "channels" | null;
+const text = {en: {saved:"Saved.", failed:"Your changes could not be saved. Try again.", name:"Name", save:"Save", cancel:"Cancel", saving:"Saving…", contact:"Contact details", contactHelp:"Phone and WhatsApp used by the church office.", phone:"Phone", channels:"Notification channels", channelsHelp:"Set the Telegram ID that will receive your enabled alerts.", telegram:"Telegram ID", alerts:"Prayer request alerts", alertsHelp:"Choose how you receive new prayer requests.", telegramAlert:"Receive prayer requests via Telegram", telegramAlertHelp:"Requires the Telegram ID above.", emailAlert:"Receive email copies of prayer requests", emailAlertHelp:"Sends a copy to your access email.", security:"Security", securityHelp:"Set up or review two-factor authentication for this account.", openSecurity:"Open security settings", accessEmail:"Access email", accessEmailHelp:"This is the email you use to sign in.", changeEmail:"Change access email", newEmail:"New email", password:"Current password", continue:"Continue", warningTitle:"Confirm email change", warning:"Changing your access email will close all of your active sessions. You will need to sign in again with the new email and your current password.", confirm:"Change email and sign out", successTitle:"Email changed", success:"Your access email was updated. For your security, this session will close in {seconds} seconds.", invalid:"Check the new email and your current password.", duplicate:"That email is already in use.", twoFactorOn:"2FA active", twoFactorOff:"2FA not configured", edit:"Edit", close:"Close"}, es: {saved:"Cambios guardados.", failed:"No se pudieron guardar los cambios. Inténtalo de nuevo.", name:"Nombre", save:"Guardar", cancel:"Cancelar", saving:"Guardando…", contact:"Datos de contacto", contactHelp:"Teléfono y WhatsApp utilizados por la oficina de la iglesia.", phone:"Teléfono", channels:"Canales de notificación", channelsHelp:"Configura el ID de Telegram que recibirá tus alertas activadas.", telegram:"ID de Telegram", alerts:"Alertas de peticiones de oración", alertsHelp:"Elige cómo recibir nuevas peticiones de oración.", telegramAlert:"Recibir peticiones de oración por Telegram", telegramAlertHelp:"Requiere el ID de Telegram indicado arriba.", emailAlert:"Recibir copias por correo de peticiones de oración", emailAlertHelp:"Envía una copia a tu correo de acceso.", security:"Seguridad", securityHelp:"Configura o revisa la autenticación de dos factores de esta cuenta.", openSecurity:"Abrir configuración de seguridad", accessEmail:"Correo de acceso", accessEmailHelp:"Este es el correo que usas para iniciar sesión.", changeEmail:"Cambiar correo de acceso", newEmail:"Correo nuevo", password:"Contraseña actual", continue:"Continuar", warningTitle:"Confirmar cambio de correo", warning:"Cambiar tu correo de acceso cerrará todas tus sesiones activas. Deberás iniciar sesión de nuevo con el correo nuevo y tu contraseña actual.", confirm:"Cambiar correo y cerrar sesión", successTitle:"Correo actualizado", success:"Tu correo de acceso fue actualizado. Por seguridad, esta sesión se cerrará en {seconds} segundos.", invalid:"Revisa el correo nuevo y tu contraseña actual.", duplicate:"Ese correo ya está en uso.", twoFactorOn:"2FA activa", twoFactorOff:"2FA no configurada", edit:"Editar", close:"Cerrar"}} as const;
+async function saveProfile(payload: Record<string, unknown>) { const r = await fetch("/api/admin/profile", {method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify(payload)}); return r.ok; }
+function ProfileSection({title, help, icon, editing, kind, editLabel, onEdit, children}: {title: string; help: string; icon: React.ReactNode; editing: Editing; kind: Editing; editLabel: string; onEdit: (kind: Editing) => void; children: React.ReactNode}) { return <section className="admin-profile-section"><div className="admin-profile-section-heading"><div><h3>{icon} {title}</h3><p>{help}</p></div>{editing === kind ? null : <button type="button" className="admin-icon-button" onClick={() => onEdit(kind)} aria-label={`${editLabel}: ${title}`}><IconPencil size={17}/></button>}</div>{children}</section>; }
 
 export function ProfileSettings({profile}: {profile: Profile}) {
-  const [name, setName] = useState(profile.name);
-  const [phone, setPhone] = useState(profile.phone ?? "");
-  const [whatsapp, setWhatsapp] = useState(profile.whatsapp ?? "");
-  const [telegramChatId, setTelegramChatId] = useState(profile.telegramChatId ?? "");
-  const [prayerTelegramAlertsEnabled, setPrayerTelegramAlertsEnabled] = useState(profile.prayerTelegramAlertsEnabled);
-  const [prayerEmailCopiesEnabled, setPrayerEmailCopiesEnabled] = useState(profile.prayerEmailCopiesEnabled);
-  const [editing, setEditing] = useState<"identity" | "contact" | "channels" | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  async function submitIdentity(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage(null);
-    setSaving(true);
-    const form = new FormData(event.currentTarget);
-    const nextName = String(form.get("name") ?? "").trim();
-    const ok = await saveProfile({name: nextName});
-    setSaving(false);
-    if (!ok) {
-      setMessage("Your name could not be saved. Try again.");
-      return;
-    }
-    setName(nextName);
-    setEditing(null);
-    setMessage("Name saved.");
-  }
-
-  async function submitContact(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage(null);
-    setSaving(true);
-    const form = new FormData(event.currentTarget);
-    const nextPhone = String(form.get("phone") ?? "").trim();
-    const nextWhatsapp = String(form.get("whatsapp") ?? "").trim();
-    const ok = await saveProfile({name, phone: nextPhone, whatsapp: nextWhatsapp});
-    setSaving(false);
-    if (!ok) {
-      setMessage("Your contact details could not be saved. Try again.");
-      return;
-    }
-    setPhone(nextPhone);
-    setWhatsapp(nextWhatsapp);
-    setEditing(null);
-    setMessage("Contact details saved.");
-  }
-
-  async function submitChannels(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage(null);
-    setSaving(true);
-    const form = new FormData(event.currentTarget);
-    const nextTelegram = String(form.get("telegramChatId") ?? "").trim();
-    const ok = await saveProfile({name, telegramChatId: nextTelegram});
-    setSaving(false);
-    if (!ok) {
-      setMessage("Your authorized channel could not be saved. Try again.");
-      return;
-    }
-    setTelegramChatId(nextTelegram);
-    setEditing(null);
-    setMessage("Authorized channel saved.");
-  }
-
-  async function toggleAlert(preference: "telegram" | "email") {
-    setMessage(null);
-    setSaving(true);
-    const next = preference === "telegram" ? !prayerTelegramAlertsEnabled : !prayerEmailCopiesEnabled;
-    const ok = await saveProfile({
-      name,
-      prayerTelegramAlertsEnabled: preference === "telegram" ? next : prayerTelegramAlertsEnabled,
-      prayerEmailCopiesEnabled: preference === "email" ? next : prayerEmailCopiesEnabled,
-    });
-    setSaving(false);
-    if (!ok) {
-      setMessage("The preference could not be saved. Try again.");
-      return;
-    }
-    if (preference === "telegram") setPrayerTelegramAlertsEnabled(next);
-    else setPrayerEmailCopiesEnabled(next);
-    setMessage(next ? "Preference enabled." : "Preference disabled.");
-  }
-
-  return (
-    <div className="admin-profile-card">
-      {message ? <p className="admin-status-message" role="status">{message}</p> : null}
-
-      <header className="admin-profile-identity">
-        <div className="admin-profile-avatar" aria-hidden>{name.charAt(0).toUpperCase()}</div>
-        <div className="admin-profile-identity-text">
-          <h2>{name}</h2>
-          <p className="admin-profile-email"><IconMail size={16} aria-hidden /> {profile.email}</p>
-          <div className="admin-profile-badges">
-            {profile.roles.map((role) => (
-              <span key={role} className="admin-badge">{roleLabels[role] ?? role}</span>
-            ))}
-            <span className={profile.twoFactorEnabled ? "admin-badge admin-badge-success" : "admin-badge admin-badge-muted"}>
-              {profile.twoFactorEnabled ? "2FA active" : "2FA not configured"}
-            </span>
-          </div>
-        </div>
-        {editing === "identity" ? null : (
-          <button type="button" className="admin-icon-button" onClick={() => setEditing("identity")} aria-label="Edit your name">
-            <IconPencil size={17} aria-hidden />
-          </button>
-        )}
-      </header>
-
-      {editing === "identity" ? (
-        <form onSubmit={submitIdentity} className="admin-auth-form admin-profile-edit">
-          <div>
-            <label htmlFor="profile-name">Name</label>
-            <input id="profile-name" name="name" defaultValue={name} required minLength={2} />
-          </div>
-          <div className="admin-form-actions">
-            <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save name"}</button>
-            <button type="button" className="admin-button-ghost" onClick={() => setEditing(null)}>Cancel</button>
-          </div>
-        </form>
-      ) : null}
-
-      <section className="admin-profile-section">
-        <div className="admin-profile-section-heading">
-          <div>
-            <h3><IconPhone size={18} aria-hidden /> Contact details</h3>
-            <p>Phone and WhatsApp used by the church office.</p>
-          </div>
-          {editing === "contact" ? null : (
-            <button type="button" className="admin-icon-button" onClick={() => setEditing("contact")} aria-label="Edit contact details">
-              <IconPencil size={17} aria-hidden />
-            </button>
-          )}
-        </div>
-        {editing === "contact" ? (
-          <form onSubmit={submitContact} className="admin-auth-form admin-form-grid">
-            <div>
-              <label htmlFor="profile-phone">Phone</label>
-              <input id="profile-phone" name="phone" type="tel" defaultValue={phone} />
-            </div>
-            <div>
-              <label htmlFor="profile-whatsapp">WhatsApp</label>
-              <input id="profile-whatsapp" name="whatsapp" type="tel" defaultValue={whatsapp} />
-            </div>
-            <div className="admin-form-actions">
-              <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save contact details"}</button>
-              <button type="button" className="admin-button-ghost" onClick={() => setEditing(null)}>Cancel</button>
-            </div>
-          </form>
-        ) : (
-          <dl className="admin-profile-fields">
-            <div><dt>Phone</dt><dd>{phone || "—"}</dd></div>
-            <div><dt>WhatsApp</dt><dd>{whatsapp || "—"}</dd></div>
-          </dl>
-        )}
-      </section>
-
-      <section className="admin-profile-section">
-        <div className="admin-profile-section-heading">
-          <div>
-            <h3><IconSend size={18} aria-hidden /> Authorized channels</h3>
-            <p>Telegram is stored for a future authorized phase only.</p>
-          </div>
-          {editing === "channels" ? null : (
-            <button type="button" className="admin-icon-button" onClick={() => setEditing("channels")} aria-label="Edit authorized channels">
-              <IconPencil size={17} aria-hidden />
-            </button>
-          )}
-        </div>
-        {editing === "channels" ? (
-          <form onSubmit={submitChannels} className="admin-auth-form admin-form-grid">
-            <div>
-              <label htmlFor="profile-telegram">Authorized Telegram ID</label>
-              <input id="profile-telegram" name="telegramChatId" inputMode="numeric" defaultValue={telegramChatId} />
-              <p className="admin-field-note">Notifications are not activated until the future communications phase is approved and configured.</p>
-            </div>
-            <div className="admin-form-actions">
-              <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save channel"}</button>
-              <button type="button" className="admin-button-ghost" onClick={() => setEditing(null)}>Cancel</button>
-            </div>
-          </form>
-        ) : (
-          <dl className="admin-profile-fields">
-            <div><dt>Telegram ID</dt><dd>{telegramChatId || "—"}</dd></div>
-          </dl>
-        )}
-      </section>
-
-      <section className="admin-profile-section">
-        <div className="admin-profile-section-heading">
-          <div>
-            <h3><IconBell size={18} aria-hidden /> Prayer request alerts</h3>
-            <p>Choose how you receive prayer requests from the panel. Both are off by default and only you can change them here.</p>
-          </div>
-        </div>
-        <div className="admin-alert-preferences">
-          <label className="admin-alert-toggle">
-            <input
-              type="checkbox"
-              checked={prayerTelegramAlertsEnabled}
-              disabled={saving}
-              onChange={() => toggleAlert("telegram")}
-            />
-            <span>
-              <strong>Receive prayer requests via Telegram</strong>
-              <small>Sends a Telegram message when a new prayer request arrives. Requires your Telegram ID above.</small>
-            </span>
-          </label>
-          <label className="admin-alert-toggle">
-            <input
-              type="checkbox"
-              checked={prayerEmailCopiesEnabled}
-              disabled={saving}
-              onChange={() => toggleAlert("email")}
-            />
-            <span>
-              <strong>Receive prayer request email copies</strong>
-              <small>Sends a copy of new prayer requests to your email address.</small>
-            </span>
-          </label>
-        </div>
-      </section>
-
-      <section className="admin-profile-section">
-        <div className="admin-profile-section-heading">
-          <div>
-            <h3><IconShieldCheck size={18} aria-hidden /> Security</h3>
-            <p>Set up or review two-factor authentication for this account.</p>
-          </div>
-        </div>
-        <p className="admin-profile-security-link">
-          <Link className="admin-action-link" href="/admin/security"><IconLock size={16} aria-hidden /> Open security settings</Link>
-        </p>
-        <p className="admin-profile-saved-note"><IconCheck size={15} aria-hidden /> Changes are saved only when you press the save button in each section.</p>
-      </section>
-    </div>
-  );
+ const router=useRouter(); const {locale,t}=useAdminShell(); const l=text[locale]; const [name,setName]=useState(profile.name); const [phone,setPhone]=useState(profile.phone??""); const [whatsapp,setWhatsapp]=useState(profile.whatsapp??""); const [telegram,setTelegram]=useState(profile.telegramChatId??""); const [telegramEnabled,setTelegramEnabled]=useState(profile.prayerTelegramAlertsEnabled); const [emailEnabled,setEmailEnabled]=useState(profile.prayerEmailCopiesEnabled); const [editing,setEditing]=useState<Editing>(null); const [message,setMessage]=useState<string|null>(null); const [saving,setSaving]=useState(false); const [nextEmail,setNextEmail]=useState(""); const [currentPassword,setCurrentPassword]=useState(""); const [confirmEmail,setConfirmEmail]=useState(false); const [successEmail,setSuccessEmail]=useState(false); const [seconds,setSeconds]=useState(5);
+ useEffect(()=>{if(!successEmail)return;if(seconds<=0){void authClient.signOut().finally(()=>router.push("/admin/sign-in?emailChanged=1"));return;}const id=window.setTimeout(()=>setSeconds(s=>s-1),1000);return()=>window.clearTimeout(id);},[successEmail,seconds,router]);
+ const closeEmail=()=>{setEditing(null);setConfirmEmail(false);setNextEmail("");setCurrentPassword("");};
+ async function submit(e:FormEvent<HTMLFormElement>,section:Editing){e.preventDefault();setSaving(true);setMessage(null);const f=new FormData(e.currentTarget);const payload=section==="identity"?{name:String(f.get("name")??"").trim()}:section==="contact"?{name,phone:String(f.get("phone")??"").trim(),whatsapp:String(f.get("whatsapp")??"").trim()}:{name,telegramChatId:String(f.get("telegramChatId")??"").trim()};const ok=await saveProfile(payload);setSaving(false);if(!ok)return setMessage(l.failed);if(section==="identity")setName(payload.name);if(section==="contact"){setPhone(payload.phone ?? "");setWhatsapp(payload.whatsapp ?? "");}if(section==="channels")setTelegram(payload.telegramChatId ?? "");setEditing(null);setMessage(l.saved);}
+ async function toggle(kind:"telegram"|"email"){setSaving(true);setMessage(null);const next=kind==="telegram"?!telegramEnabled:!emailEnabled;const ok=await saveProfile({name,prayerTelegramAlertsEnabled:kind==="telegram"?next:telegramEnabled,prayerEmailCopiesEnabled:kind==="email"?next:emailEnabled});setSaving(false);if(!ok)return setMessage(l.failed);if(kind==="telegram")setTelegramEnabled(next);else setEmailEnabled(next);setMessage(l.saved);}
+ async function changeEmail(){setSaving(true);setMessage(null);const r=await fetch("/api/admin/profile/email",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:nextEmail,currentPassword})});setSaving(false);if(!r.ok){const data=await r.json().catch(()=>({}));setConfirmEmail(false);setMessage(data.error==="email_in_use"?l.duplicate:l.invalid);return;}setCurrentPassword("");setConfirmEmail(false);setSuccessEmail(true);}
+ return <div className="admin-profile-card">{message&&<p className="admin-status-message" role="status">{message}</p>}<header className="admin-profile-identity"><div className="admin-profile-avatar">{name.charAt(0).toUpperCase()}</div><div className="admin-profile-identity-text"><h2>{name}</h2><p className="admin-profile-email"><IconMail size={16}/> {profile.email}</p><div className="admin-profile-badges">{profile.roles.map(role=><span key={role} className="admin-badge">{t.roles[role]??role}</span>)}<span className={profile.twoFactorEnabled?"admin-badge admin-badge-success":"admin-badge admin-badge-muted"}>{profile.twoFactorEnabled?l.twoFactorOn:l.twoFactorOff}</span></div></div>{editing!=="identity"&&<button type="button" className="admin-icon-button" onClick={()=>setEditing("identity")} aria-label={`${l.edit}: ${l.name}`}><IconPencil size={17}/></button>}</header>
+ {editing==="identity"&&<form onSubmit={e=>submit(e,"identity")} className="admin-auth-form admin-profile-edit"><label>{l.name}<input name="name" defaultValue={name} required minLength={2}/></label><div className="admin-form-actions"><button disabled={saving}>{saving?l.saving:l.save}</button><button type="button" className="admin-button-ghost" onClick={()=>setEditing(null)}>{l.cancel}</button></div></form>}
+ <ProfileSection title={l.accessEmail} help={l.accessEmailHelp} icon={<IconMail size={18}/>} kind="email" editing={editing} editLabel={l.edit} onEdit={setEditing}>{editing==="email"?<form onSubmit={e=>{e.preventDefault();setConfirmEmail(true);}} className="admin-auth-form admin-form-grid"><label>{l.newEmail}<input type="email" value={nextEmail} onChange={e=>setNextEmail(e.target.value)} required/></label><label>{l.password}<input type="password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} autoComplete="current-password" required/></label><div className="admin-form-actions"><button disabled={saving}>{l.continue}</button><button type="button" className="admin-button-ghost" onClick={closeEmail}>{l.cancel}</button></div></form>:<p className="admin-profile-security-link">{profile.email}</p>}</ProfileSection>
+ <ProfileSection title={l.contact} help={l.contactHelp} icon={<IconPhone size={18}/>} kind="contact" editing={editing} editLabel={l.edit} onEdit={setEditing}>{editing==="contact"?<form onSubmit={e=>submit(e,"contact")} className="admin-auth-form admin-form-grid"><label>{l.phone}<input name="phone" type="tel" defaultValue={phone}/></label><label>WhatsApp<input name="whatsapp" type="tel" defaultValue={whatsapp}/></label><div className="admin-form-actions"><button disabled={saving}>{saving?l.saving:l.save}</button><button type="button" className="admin-button-ghost" onClick={()=>setEditing(null)}>{l.cancel}</button></div></form>:<dl className="admin-profile-fields"><div><dt>{l.phone}</dt><dd>{phone||"—"}</dd></div><div><dt>WhatsApp</dt><dd>{whatsapp||"—"}</dd></div></dl>}</ProfileSection>
+ <ProfileSection title={l.channels} help={l.channelsHelp} icon={<IconSend size={18}/>} kind="channels" editing={editing} editLabel={l.edit} onEdit={setEditing}>{editing==="channels"?<form onSubmit={e=>submit(e,"channels")} className="admin-auth-form admin-form-grid"><label>{l.telegram}<input name="telegramChatId" inputMode="numeric" defaultValue={telegram}/></label><div className="admin-form-actions"><button disabled={saving}>{saving?l.saving:l.save}</button><button type="button" className="admin-button-ghost" onClick={()=>setEditing(null)}>{l.cancel}</button></div></form>:<dl className="admin-profile-fields"><div><dt>{l.telegram}</dt><dd>{telegram||"—"}</dd></div></dl>}</ProfileSection>
+ <section className="admin-profile-section"><div className="admin-profile-section-heading"><div><h3><IconBell size={18}/> {l.alerts}</h3><p>{l.alertsHelp}</p></div></div><div className="admin-alert-preferences"><label className="admin-alert-toggle"><input type="checkbox" checked={telegramEnabled} disabled={saving} onChange={()=>toggle("telegram")}/><span><strong>{l.telegramAlert}</strong><small>{l.telegramAlertHelp}</small></span></label><label className="admin-alert-toggle"><input type="checkbox" checked={emailEnabled} disabled={saving} onChange={()=>toggle("email")}/><span><strong>{l.emailAlert}</strong><small>{l.emailAlertHelp}</small></span></label></div></section><section className="admin-profile-section"><div className="admin-profile-section-heading"><div><h3><IconShieldCheck size={18}/> {l.security}</h3><p>{l.securityHelp}</p></div></div><p className="admin-profile-security-link"><Link className="admin-action-link" href="/admin/security"><IconLock size={16}/> {l.openSecurity}</Link></p><p className="admin-profile-saved-note"><IconCheck size={15}/> {l.saved}</p></section>
+ <Modal open={confirmEmail} onOpenChange={setConfirmEmail} title={l.warningTitle} description={l.warning} closeLabel={l.close}><div className="admin-form-actions"><button type="button" className="admin-button-ghost" onClick={()=>setConfirmEmail(false)}>{l.cancel}</button><button type="button" disabled={saving} onClick={changeEmail}>{saving?l.saving:l.confirm}</button></div></Modal><Modal open={successEmail} onOpenChange={()=>undefined} title={l.successTitle} description={l.success.replace("{seconds}",String(seconds))} showCloseButton={false} dismissable={false}><p aria-live="polite">{seconds}</p></Modal></div>;
 }

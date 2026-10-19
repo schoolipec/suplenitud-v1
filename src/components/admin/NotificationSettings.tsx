@@ -2,6 +2,7 @@
 
 import {useState} from "react";
 import {IconBell, IconCheck} from "@tabler/icons-react";
+import {useAdminShell} from "@/components/admin/AdminShellProvider";
 
 type NotificationPreferences = {
   newPrayerRequest: boolean;
@@ -11,6 +12,7 @@ type NotificationPreferences = {
 };
 
 export function NotificationSettings({initialPreferences}: {initialPreferences: NotificationPreferences}) {
+  const {locale, t} = useAdminShell(); const l = locale === "es" ? {saved:"Preferencia guardada.", failed:"No se pudo guardar la preferencia.", title:"Preferencias de notificaciones", intro:"Controla las alertas internas del panel. No activan canales externos.", note:"Las preferencias solo controlan notificaciones internas. Telegram, correo y WhatsApp no se activan aquí."} : {saved:"Preference saved.", failed:"Could not save preference.", title:"Notification preferences", intro:"Control internal panel alerts. These do not activate external channels.", note:"Preferences only control internal panel notifications. Telegram, email, and WhatsApp are not activated."};
   const [preferences, setPreferences] = useState(initialPreferences);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -29,9 +31,9 @@ export function NotificationSettings({initialPreferences}: {initialPreferences: 
 
     setSaving(false);
     if (response.ok) {
-      setMessage("Preference saved.");
+      setMessage(l.saved);
     } else {
-      setMessage("Could not save preference.");
+      setMessage(l.failed);
       setPreferences(preferences);
     }
   }
@@ -40,8 +42,8 @@ export function NotificationSettings({initialPreferences}: {initialPreferences: 
     <section className="admin-profile-section">
       <div className="admin-profile-section-heading">
         <div>
-          <h3><IconBell size={18} aria-hidden /> Notification preferences</h3>
-          <p>Control internal panel alerts. These do not activate external channels.</p>
+          <h3><IconBell size={18} aria-hidden /> {l.title}</h3>
+          <p>{l.intro}</p>
         </div>
       </div>
 
@@ -55,7 +57,7 @@ export function NotificationSettings({initialPreferences}: {initialPreferences: 
             onChange={() => toggle("newPrayerRequest")}
             disabled={saving}
           />
-          <span>New prayer request</span>
+          <span>{t.notificationTypes.NEW_PRAYER_REQUEST}</span>
         </label>
         <label className="admin-checkbox-row">
           <input
@@ -64,7 +66,7 @@ export function NotificationSettings({initialPreferences}: {initialPreferences: 
             onChange={() => toggle("newContactRequest")}
             disabled={saving}
           />
-          <span>New contact request</span>
+          <span>{t.notificationTypes.NEW_CONTACT_REQUEST}</span>
         </label>
         <label className="admin-checkbox-row">
           <input
@@ -73,7 +75,7 @@ export function NotificationSettings({initialPreferences}: {initialPreferences: 
             onChange={() => toggle("pendingAssignment")}
             disabled={saving}
           />
-          <span>Pending assignment</span>
+          <span>{t.notificationTypes.PENDING_ASSIGNMENT}</span>
         </label>
         <label className="admin-checkbox-row">
           <input
@@ -82,13 +84,13 @@ export function NotificationSettings({initialPreferences}: {initialPreferences: 
             onChange={() => toggle("assignmentMade")}
             disabled={saving}
           />
-          <span>Assignment made</span>
+          <span>{t.notificationTypes.ASSIGNMENT_MADE}</span>
         </label>
       </div>
 
       <p className="admin-field-note">
         <IconCheck size={15} aria-hidden />
-        Preferences only control internal panel notifications. Telegram, email, and WhatsApp are not activated.
+        {l.note}
       </p>
     </section>
   );

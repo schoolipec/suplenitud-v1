@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "prisma:generate": "prisma generate",
+    "seed:blessing-messages": "tsx scripts/seed-blessing-messages.mts",
     "admin:bootstrap": "tsx scripts/bootstrap-superadmin.mts",
     "verify:admin-users": "tsx scripts/verify-admin-users-api.mts",
     "verify:admin-users-pagination": "tsx scripts/verify-admin-users-pagination.mts",
@@ -23,7 +24,9 @@
     "verify:public-content-binding": "tsx scripts/verify-public-content-binding.mts",
     "verify:admin-shell": "tsx scripts/verify-admin-shell.mts",
     "verify:admin-analytics-overview": "tsx scripts/verify-admin-analytics-overview.mts",
-    "verify:cms-media": "tsx scripts/verify-cms-media.mts"
+    "verify:cms-media": "tsx scripts/verify-cms-media.mts",
+    "verify:bible-blessing-modal": "tsx scripts/verify-bible-blessing-modal.mts",
+    "verify:profile-email-change": "tsx scripts/verify-profile-email-change.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

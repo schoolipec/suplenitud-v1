@@ -16,6 +16,7 @@ import {
 } from "@tabler/icons-react";
 import {Modal} from "@/components/ui/Modal";
 import {AdminPagination} from "@/components/admin/AdminPagination";
+import {useAdminShell} from "@/components/admin/AdminShellProvider";
 import type {AdminUsersResult} from "@/lib/admin-users-query";
 
 type ManagedUser = AdminUsersResult["users"][number];
@@ -124,6 +125,8 @@ function SortHeader({
 }
 
 export function UserManagement({currentUserId, initialData}: {currentUserId?: string; initialData: AdminUsersResult}) {
+  const {locale, t} = useAdminShell();
+  const l = locale === "es" ? {title: "Usuarios", subtitle: "Cuentas y roles de acceso de la plataforma.", refreshing: "Actualizando…", refresh: "Actualizar", create: "Crear usuario", search: "Buscar por nombre o correo…", allRoles: "Todos los roles", allStatuses: "Todos los estados", rows: "Filas", name: "Nombre", email: "Correo", role: "Rol", status: "Estado", twoFactor: "Dos factores", created: "Creado", activity: "Actividad", active: "Activo", inactive: "Desactivado", noUsers: "No hay usuarios que coincidan con los filtros actuales."} : {title: "Users", subtitle: "Accounts and access roles for the platform.", refreshing: "Refreshing…", refresh: "Refresh", create: "Create user", search: "Search by name or email…", allRoles: "All roles", allStatuses: "All statuses", rows: "Rows", name: "Name", email: "Email", role: "Role", status: "Status", twoFactor: "Two-factor", created: "Created", activity: "Activity", active: "Active", inactive: "Deactivated", noUsers: "No users match the current filters."};
   const [users, setUsers] = useState<ManagedUser[]>(initialData.users);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -395,17 +398,17 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
       <section className="admin-section">
         <div className="admin-section-heading">
           <div>
-            <h2>Users</h2>
-            <p>Accounts and access roles for the platform.</p>
+            <h2>{l.title}</h2>
+            <p>{l.subtitle}</p>
           </div>
           <div className="admin-section-actions">
             <button type="button" className="admin-button-secondary" onClick={() => reload(pagination.page)} disabled={loading}>
               <IconRefresh size={17} aria-hidden />
-              {loading ? "Refreshing…" : "Refresh"}
+              {loading ? l.refreshing : l.refresh}
             </button>
             <button type="button" className="admin-button-primary" onClick={() => { setCreating((open) => !open); setEditingId(null); }} aria-expanded={creating}>
               <IconPlus size={17} aria-hidden />
-              Create user
+              {l.create}
             </button>
           </div>
         </div>
@@ -511,7 +514,7 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
             <input
               id="user-search"
               type="search"
-              placeholder="Search by name or email…"
+              placeholder={l.search}
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
@@ -531,11 +534,11 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
                 setPage(1);
               }}
             >
-              <option value="ALL">All roles</option>
-              <option value="SUPER_ADMIN">Super admin</option>
-              <option value="ADMIN">Admin</option>
-              <option value="TREASURER">Treasurer</option>
-              <option value="USHER">Usher</option>
+              <option value="ALL">{l.allRoles}</option>
+              <option value="SUPER_ADMIN">{t.roles.SUPER_ADMIN}</option>
+              <option value="ADMIN">{t.roles.ADMIN}</option>
+              <option value="TREASURER">{t.roles.TREASURER}</option>
+              <option value="USHER">{locale === "es" ? "Ujier" : "Usher"}</option>
             </select>
             <label htmlFor="user-status-filter" className="admin-sr-only">Filter by status</label>
             <select
@@ -547,11 +550,11 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
                 setPage(1);
               }}
             >
-              <option value="ALL">All statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Deactivated</option>
+              <option value="ALL">{l.allStatuses}</option>
+              <option value="active">{l.active}</option>
+              <option value="inactive">{l.inactive}</option>
             </select>
-            <label htmlFor="user-page-size">Rows</label>
+            <label htmlFor="user-page-size">{l.rows}</label>
             <select
               id="user-page-size"
               value={pageSize}
@@ -572,13 +575,13 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
           <table className="admin-data-table">
             <thead>
               <tr>
-                <SortHeader label="Name" field="name" sort={sort} onSort={handleSort} />
-                <SortHeader label="Email" field="email" sort={sort} onSort={handleSort} />
-                <th scope="col" className="admin-col-role">Role</th>
-                <SortHeader label="Status" field="active" sort={sort} onSort={handleSort} />
-                <th scope="col" className="admin-col-2fa">Two-factor</th>
-                <SortHeader label="Created" field="createdAt" sort={sort} onSort={handleSort} />
-                <th scope="col" className="admin-col-activity">Activity</th>
+                <SortHeader label={l.name} field="name" sort={sort} onSort={handleSort} />
+                <SortHeader label={l.email} field="email" sort={sort} onSort={handleSort} />
+                <th scope="col" className="admin-col-role">{l.role}</th>
+                <SortHeader label={l.status} field="active" sort={sort} onSort={handleSort} />
+                <th scope="col" className="admin-col-2fa">{l.twoFactor}</th>
+                <SortHeader label={l.created} field="createdAt" sort={sort} onSort={handleSort} />
+                <th scope="col" className="admin-col-activity">{l.activity}</th>
                 <th scope="col"><span className="admin-sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -607,7 +610,7 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
                 <tr>
                   <td colSpan={8}>
                     <div className="admin-empty">
-                      <p>No users match the current filters.</p>
+                      <p>{l.noUsers}</p>
                     </div>
                   </td>
                 </tr>
