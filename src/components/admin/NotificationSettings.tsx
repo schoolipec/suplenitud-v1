@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {Checkbox, Stack, Alert, Group} from "@mantine/core";
 import {IconBell, IconCheck} from "@tabler/icons-react";
 import {useAdminShell} from "@/components/admin/AdminShellProvider";
 
@@ -12,7 +13,24 @@ type NotificationPreferences = {
 };
 
 export function NotificationSettings({initialPreferences}: {initialPreferences: NotificationPreferences}) {
-  const {locale, t} = useAdminShell(); const l = locale === "es" ? {saved:"Preferencia guardada.", failed:"No se pudo guardar la preferencia.", title:"Preferencias de notificaciones", intro:"Controla las alertas internas del panel. No activan canales externos.", note:"Las preferencias solo controlan notificaciones internas. Telegram, correo y WhatsApp no se activan aquí."} : {saved:"Preference saved.", failed:"Could not save preference.", title:"Notification preferences", intro:"Control internal panel alerts. These do not activate external channels.", note:"Preferences only control internal panel notifications. Telegram, email, and WhatsApp are not activated."};
+  const {locale, t} = useAdminShell();
+  const l =
+    locale === "es"
+      ? {
+          saved: "Preferencia guardada.",
+          failed: "No se pudo guardar la preferencia.",
+          title: "Preferencias de notificaciones",
+          intro: "Controla las alertas internas del panel. No activan canales externos.",
+          note: "Las preferencias solo controlan notificaciones internas. Telegram, correo y WhatsApp no se activan aquí.",
+        }
+      : {
+          saved: "Preference saved.",
+          failed: "Could not save preference.",
+          title: "Notification preferences",
+          intro: "Control internal panel alerts. These do not activate external channels.",
+          note: "Preferences only control internal panel notifications. Telegram, email, and WhatsApp are not activated.",
+        };
+
   const [preferences, setPreferences] = useState(initialPreferences);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -39,59 +57,55 @@ export function NotificationSettings({initialPreferences}: {initialPreferences: 
   }
 
   return (
-    <section className="admin-profile-section">
-      <div className="admin-profile-section-heading">
+    <Stack gap="md">
+      <Group gap="sm">
+        <IconBell size={18} aria-hidden />
         <div>
-          <h3><IconBell size={18} aria-hidden /> {l.title}</h3>
-          <p>{l.intro}</p>
+          <h3 style={{margin: "0 0 0.5rem"}}>{l.title}</h3>
+          <p style={{margin: 0, color: "var(--muted)"}}>{l.intro}</p>
         </div>
-      </div>
+      </Group>
 
-      {message ? <p className="admin-status-message" role="status">{message}</p> : null}
+      {message && (
+        <Alert
+          color={message === l.saved ? "green" : "red"}
+          role="status"
+        >
+          {message}
+        </Alert>
+      )}
 
-      <div className="admin-notification-preferences">
-        <label className="admin-checkbox-row">
-          <input
-            type="checkbox"
-            checked={preferences.newPrayerRequest}
-            onChange={() => toggle("newPrayerRequest")}
-            disabled={saving}
-          />
-          <span>{t.notificationTypes.NEW_PRAYER_REQUEST}</span>
-        </label>
-        <label className="admin-checkbox-row">
-          <input
-            type="checkbox"
-            checked={preferences.newContactRequest}
-            onChange={() => toggle("newContactRequest")}
-            disabled={saving}
-          />
-          <span>{t.notificationTypes.NEW_CONTACT_REQUEST}</span>
-        </label>
-        <label className="admin-checkbox-row">
-          <input
-            type="checkbox"
-            checked={preferences.pendingAssignment}
-            onChange={() => toggle("pendingAssignment")}
-            disabled={saving}
-          />
-          <span>{t.notificationTypes.PENDING_ASSIGNMENT}</span>
-        </label>
-        <label className="admin-checkbox-row">
-          <input
-            type="checkbox"
-            checked={preferences.assignmentMade}
-            onChange={() => toggle("assignmentMade")}
-            disabled={saving}
-          />
-          <span>{t.notificationTypes.ASSIGNMENT_MADE}</span>
-        </label>
-      </div>
+      <Stack gap="xs">
+        <Checkbox
+          checked={preferences.newPrayerRequest}
+          onChange={() => toggle("newPrayerRequest")}
+          disabled={saving}
+          label={t.notificationTypes.NEW_PRAYER_REQUEST}
+        />
+        <Checkbox
+          checked={preferences.newContactRequest}
+          onChange={() => toggle("newContactRequest")}
+          disabled={saving}
+          label={t.notificationTypes.NEW_CONTACT_REQUEST}
+        />
+        <Checkbox
+          checked={preferences.pendingAssignment}
+          onChange={() => toggle("pendingAssignment")}
+          disabled={saving}
+          label={t.notificationTypes.PENDING_ASSIGNMENT}
+        />
+        <Checkbox
+          checked={preferences.assignmentMade}
+          onChange={() => toggle("assignmentMade")}
+          disabled={saving}
+          label={t.notificationTypes.ASSIGNMENT_MADE}
+        />
+      </Stack>
 
-      <p className="admin-field-note">
+      <Group gap={8} style={{color: "var(--muted)", fontSize: "0.9rem"}}>
         <IconCheck size={15} aria-hidden />
-        {l.note}
-      </p>
-    </section>
+        <span>{l.note}</span>
+      </Group>
+    </Stack>
   );
 }
