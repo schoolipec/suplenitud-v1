@@ -1,9 +1,9 @@
 "use client";
 
 import {useRef, useState} from "react";
-import {Modal} from '@/components/ui/Modal';
+import {TextInput, Select, Button, Badge, Dialog, Stack, Group, Table, Alert} from "@mantine/core";
+import {IconSearch, IconDownload, IconPrinter} from "@tabler/icons-react";
 import {isCurrentPrayer, parsePrayerFilters, prayerFilterParams, prayerStatusLabel, type PrayerQueueFilters, type PrayerQueueItem} from "@/lib/prayer-queue";
-import styles from "./PrayerRequestsQueue.module.css";
 
 export function PrayerRequestsQueue({initialRequests, initialNewCount, initialFilters}: {
   initialRequests: PrayerQueueItem[]; initialNewCount: number; initialFilters: PrayerQueueFilters;
@@ -68,63 +68,192 @@ export function PrayerRequestsQueue({initialRequests, initialNewCount, initialFi
   const disabled = loading || saving;
   const params = prayerFilterParams(appliedFilters).toString();
   const dirty = prayerFilterParams(filters).toString() !== params;
-  function actions(request: PrayerQueueItem) {
-    return <div className="admin-row-actions">
-      <button type="button" className="admin-button-secondary" onClick={() => setSelected(request)} disabled={disabled}>Ver detalle</button>
-      {isCurrentPrayer(request) && <button type="button" className="admin-button-secondary" disabled={disabled} onClick={() => changeStatus(request)}>
-        {request.status === "NEW" ? "Marcar presentada" : "Volver nueva"}
-      </button>}
-    </div>;
-  }
 
-  return <div className="admin-prayer-requests">
-    <section className="admin-section" aria-busy={disabled}>
-      <div className={styles.summary}>
-        <div className={styles.summaryCard} aria-live="polite">
-          <strong>{newCount}</strong>
-          <span>Nuevas en la cola</span>
-        </div>
+  return (
+    <Stack gap="lg">
+      <div style={{backgroundColor: "var(--mist)", padding: "1rem", borderRadius: "4px"}}>
+        <div style={{fontSize: "2rem", fontWeight: 700, marginBottom: "0.25rem"}}>{newCount}</div>
+        <div style={{color: "var(--muted)", fontSize: "0.9rem"}}>Nuevas en la cola</div>
       </div>
-      <div className="admin-section-heading">
-        <div><h2>Peticiones de oración</h2><p>Exportación e impresión incluyen solo peticiones nuevas y presentadas. Fechas en UTC.</p></div>
-        <div className="admin-section-actions">
-          <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={applyFilters}>Actualizar</button>
-          <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/api/admin/prayer-requests/export?${params}`, "_blank", "noopener,noreferrer")}>Exportar CSV</button>
-          <button type="button" className="admin-button-secondary" disabled={disabled || dirty} onClick={() => window.open(`/admin/prayer-requests/print?${params}`, "_blank", "noopener,noreferrer")}>Vista de impresión</button>
+
+      <Stack gap="sm">
+        <Group justify="space-between" wrap="wrap">
+          <div>
+            <h2 style={{margin: "0 0 0.25rem"}}>Peticiones de oración</h2>
+            <p style={{margin: 0, color: "var(--muted)", fontSize: "0.9rem"}}>
+              Exportación e impresión incluyen solo peticiones nuevas y presentadas. Fechas en UTC.
+            </p>
+          </div>
+          <Group gap="xs">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={disabled || dirty}
+              onClick={applyFilters}
+            >
+              Actualizar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              leftSection={<IconDownload size={16} />}
+              disabled={disabled || dirty}
+              onClick={() => window.open(`/api/admin/prayer-requests/export?${params}`, "_blank", "noopener,noreferrer")}
+            >
+              Exportar CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              leftSection={<IconPrinter size={16} />}
+              disabled={disabled || dirty}
+              onClick={() => window.open(`/admin/prayer-requests/print?${params}`, "_blank", "noopener,noreferrer")}
+            >
+              Vista de impresión
+            </Button>
+          </Group>
+        </Group>
+      </Stack>
+
+      {message && <Alert role="status">{message}</Alert>}
+
+      <Group gap="md" wrap="wrap">
+        <TextInput
+          placeholder="Nombre o petición"
+          leftSection={<IconSearch size={16} />}
+          maxLength={200}
+          value={filters.search}
+          disabled={disabled}
+          onChange={(e) => setFilters({...filters, search: e.target.value})}
+          style={{flex: 1, minWidth: "200px"}}
+        />
+        <Select
+          placeholder="Estado"
+          data={[
+            {value: "ALL", label: "Todas"},
+            {value: "NEW", label: "Nueva"},
+            {value: "CLOSED", label: "Presentada"},
+          ]}
+          value={filters.status}
+          disabled={disabled}
+          onChange={(value) => setFilters({...filters, status: (value || "ALL") as PrayerQueueFilters["status"]})}
+          style={{minWidth: "150px"}}
+        />
+        <TextInput
+          type="date"
+          label="Desde (UTC)"
+          value={filters.dateFrom}
+          disabled={disabled}
+          onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+          style={{minWidth: "150px"}}
+        />
+        <TextInput
+          type="date"
+          label="Hasta (UTC)"
+          value={filters.dateTo}
+          disabled={disabled}
+          onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+          style={{minWidth: "150px"}}
+        />
+        <Button
+          type="submit"
+          disabled={disabled}
+          onClick={applyFilters}
+          style={{marginTop: "1.5rem"}}
+        >
+          {loading ? "Cargando…" : "Aplicar filtros"}
+        </Button>
+      </Group>
+
+      {dirty && <Alert color="blue">Aplica los filtros para actualizar la lista, exportar o imprimir.</Alert>}
+
+      {requests.length === 0 ? (
+        <Alert color="gray" title="Sin resultados">No hay peticiones con los filtros seleccionados.</Alert>
+      ) : (
+        <div style={{overflowX: "auto"}}>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Nombre</Table.Th>
+                <Table.Th>Petición</Table.Th>
+                <Table.Th>Estado</Table.Th>
+                <Table.Th>Fecha (UTC)</Table.Th>
+                <Table.Th>Acciones</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {requests.map((request) => (
+                <Table.Tr key={request.id}>
+                  <Table.Td>{request.name}</Table.Td>
+                  <Table.Td style={{maxWidth: "300px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
+                    {request.message.slice(0, 120)}{request.message.length > 120 ? "…" : ""}
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge color={request.status === "NEW" ? "green" : "gray"}>
+                      {prayerStatusLabel(request)}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>{request.createdAt.slice(0, 10)}</Table.Td>
+                  <Table.Td>
+                    <Group gap="xs">
+                      <Button
+                        variant="subtle"
+                        size="xs"
+                        onClick={() => setSelected(request)}
+                        disabled={disabled}
+                      >
+                        Ver detalle
+                      </Button>
+                      {isCurrentPrayer(request) && (
+                        <Button
+                          variant="subtle"
+                          size="xs"
+                          disabled={disabled}
+                          onClick={() => changeStatus(request)}
+                        >
+                          {request.status === "NEW" ? "Marcar presentada" : "Volver nueva"}
+                        </Button>
+                      )}
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
         </div>
-      </div>
-      {message && <p className="admin-status-message" role="status">{message}</p>}
-      <form className={styles.filters} onSubmit={(event) => {event.preventDefault(); void applyFilters();}}>
-        <label>Buscar<input type="search" maxLength={200} placeholder="Nombre o petición" value={filters.search} disabled={disabled} onChange={(e) => setFilters({...filters, search: e.target.value})} /></label>
-        <label>Estado<select value={filters.status} disabled={disabled} onChange={(e) => setFilters({...filters, status: e.target.value as PrayerQueueFilters["status"]})}>
-          <option value="ALL">Todas</option><option value="NEW">Nueva</option><option value="CLOSED">Presentada</option>
-        </select></label>
-        <label>Desde (UTC)<input type="date" value={filters.dateFrom} disabled={disabled} onChange={(e) => setFilters({...filters, dateFrom: e.target.value})} /></label>
-        <label>Hasta (UTC)<input type="date" value={filters.dateTo} disabled={disabled} onChange={(e) => setFilters({...filters, dateTo: e.target.value})} /></label>
-        <button className="admin-button-secondary" disabled={disabled} type="submit">{loading ? "Cargando…" : "Aplicar filtros"}</button>
-      </form>
-      {dirty && <p role="status">Aplica los filtros para actualizar la lista, exportar o imprimir.</p>}
-      {requests.length === 0 ? <p className="admin-empty">No hay peticiones con los filtros seleccionados.</p> : <>
-        <div className={`${styles.desktop} admin-table-wrap`}><table className="admin-data-table">
-          <thead><tr><th>Nombre</th><th>Petición</th><th>Estado</th><th>Fecha (UTC)</th><th>Acciones</th></tr></thead>
-          <tbody>{requests.map((request) => <tr key={request.id}>
-            <td>{request.name}</td><td className={styles.preview}>{request.message.slice(0, 120)}{request.message.length > 120 ? "…" : ""}</td>
-            <td><span className={`admin-badge ${request.status === "NEW" ? "admin-badge-success" : prayerStatusLabel(request) === "Presentada" ? "admin-badge-muted" : ""}`}>{prayerStatusLabel(request)}</span></td><td>{request.createdAt.slice(0, 10)}</td><td>{actions(request)}</td>
-          </tr>)}</tbody>
-        </table></div>
-        <div className={styles.mobile}>{requests.map((request) => <article className={styles.card} key={request.id}>
-          <h3>{request.name}</h3><span className={`admin-badge ${request.status === "NEW" ? "admin-badge-success" : prayerStatusLabel(request) === "Presentada" ? "admin-badge-muted" : ""}`}>{prayerStatusLabel(request)}</span>
-          <p>{request.message.slice(0, 120)}{request.message.length > 120 ? "…" : ""}</p><p><time dateTime={request.createdAt}>{request.createdAt.slice(0, 10)} (UTC)</time></p>{actions(request)}
-        </article>)}</div>
-      </>}
-    </section>
-    <Modal open={selected !== null} onOpenChange={(open) => {if (!open) setSelected(null);}} title="Detalle de petición" description={selected ? prayerStatusLabel(selected) : undefined} closeLabel="Cerrar">
-      {selected && <div className={styles.detail}>
-        <h3>{selected.name}</h3><p><time dateTime={selected.createdAt}>{selected.createdAt.slice(0, 10)} (UTC)</time></p>
-        <p className={styles.fullMessage}>{selected.message}</p>
-        {isCurrentPrayer(selected) && <button type="button" className="admin-button-secondary" disabled={disabled} onClick={() => changeStatus(selected)}>{saving ? "Guardando…" : selected.status === "NEW" ? "Marcar presentada" : "Volver nueva"}</button>}
-        {message && <p role="status">{message}</p>}
-      </div>}
-    </Modal>
-  </div>;
+      )}
+
+      <Dialog
+        opened={selected !== null}
+        onClose={() => setSelected(null)}
+        title="Detalle de petición"
+      >
+        {selected && (
+          <Stack gap="md">
+            <div>
+              <h3 style={{margin: "0 0 0.5rem"}}>{selected.name}</h3>
+              <p style={{margin: 0, color: "var(--muted)", fontSize: "0.9rem"}}>
+                <time dateTime={selected.createdAt}>
+                  {selected.createdAt.slice(0, 10)} (UTC) · {prayerStatusLabel(selected)}
+                </time>
+              </p>
+            </div>
+            <div style={{backgroundColor: "var(--mist)", padding: "1rem", borderRadius: "4px", whiteSpace: "pre-wrap", lineHeight: 1.6}}>
+              {selected.message}
+            </div>
+            {isCurrentPrayer(selected) && (
+              <Button
+                variant="outline"
+                disabled={disabled}
+                onClick={() => changeStatus(selected)}
+              >
+                {saving ? "Guardando…" : selected.status === "NEW" ? "Marcar presentada" : "Volver nueva"}
+              </Button>
+            )}
+            {message && <Alert role="status">{message}</Alert>}
+          </Stack>
+        )}
+      </Dialog>
+    </Stack>
+  );
 }
