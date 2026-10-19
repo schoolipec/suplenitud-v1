@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import {Button, Group, Stack, Alert, Badge} from "@mantine/core";
 import {IconBell, IconCheck, IconChecks, IconRefresh} from "@tabler/icons-react";
 import {useAdminShell} from "@/components/admin/AdminShellProvider";
 
@@ -21,7 +22,38 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export function NotificationsList({initialNotifications, initialUnread}: {initialNotifications: AdminNotification[]; initialUnread: number}) {
-  const {locale, t} = useAdminShell(); const l = locale === "es" ? {load:"No se pudieron cargar las notificaciones.", update:"No se pudo actualizar la notificación.", all:"Todas las notificaciones se marcaron como leídas.", title:"Alertas internas", unread:"sin leer", intro:"Alertas exclusivas del panel. No se envían mensajes externos.", refreshing:"Actualizando…", refresh:"Actualizar", allRead:"Marcar todo como leído", markRead:"Marcar como leído", markUnread:"Marcar como no leído", empty:"Aún no hay notificaciones.", last:"Última"} : {load:"Notifications could not be loaded.", update:"The notification could not be updated.", all:"All notifications marked as read.", title:"Internal alerts", unread:"unread", intro:"Panel-only alerts. No external messages are sent.", refreshing:"Refreshing…", refresh:"Refresh", allRead:"Mark all read", markRead:"Mark read", markUnread:"Mark unread", empty:"No notifications yet.", last:"Last"};
+  const {locale, t} = useAdminShell();
+  const l =
+    locale === "es"
+      ? {
+          load: "No se pudieron cargar las notificaciones.",
+          update: "No se pudo actualizar la notificación.",
+          all: "Todas las notificaciones se marcaron como leídas.",
+          title: "Alertas internas",
+          unread: "sin leer",
+          intro: "Alertas exclusivas del panel. No se envían mensajes externos.",
+          refreshing: "Actualizando…",
+          refresh: "Actualizar",
+          allRead: "Marcar todo como leído",
+          markRead: "Marcar como leído",
+          markUnread: "Marcar como no leído",
+          empty: "Aún no hay notificaciones.",
+        }
+      : {
+          load: "Notifications could not be loaded.",
+          update: "The notification could not be updated.",
+          all: "All notifications marked as read.",
+          title: "Internal alerts",
+          unread: "unread",
+          intro: "Panel-only alerts. No external messages are sent.",
+          refreshing: "Refreshing…",
+          refresh: "Refresh",
+          allRead: "Mark all read",
+          markRead: "Mark read",
+          markUnread: "Mark unread",
+          empty: "No notifications yet.",
+        };
+
   const [notifications, setNotifications] = useState<AdminNotification[]>(initialNotifications);
   const [unread, setUnread] = useState(initialUnread);
   const [loading, setLoading] = useState(false);
@@ -70,51 +102,79 @@ export function NotificationsList({initialNotifications, initialUnread}: {initia
   }
 
   return (
-    <div className="admin-notifications">
-      <section className="admin-section">
-        <div className="admin-section-heading">
+    <Stack gap="md">
+      <Group justify="space-between">
+        <Group gap="xs">
+          <IconBell size={19} aria-hidden />
           <div>
-            <h2><IconBell size={19} aria-hidden /> {l.title} {unread > 0 ? <span className="admin-badge">{unread} {l.unread}</span> : null}</h2>
-            <p>{l.intro}</p>
+            <Group gap="sm">
+              <h2 style={{margin: 0}}>{l.title}</h2>
+              {unread > 0 && <Badge>{unread} {l.unread}</Badge>}
+            </Group>
+            <p style={{margin: "0.25rem 0 0", color: "var(--muted)", fontSize: "0.9rem"}}>{l.intro}</p>
           </div>
-          <div className="admin-section-actions">
-            <button type="button" className="admin-button-secondary" onClick={reload} disabled={loading}>
-              <IconRefresh size={17} aria-hidden />
-              {loading ? l.refreshing : l.refresh}
-            </button>
-            <button type="button" className="admin-button-secondary" onClick={markAllRead} disabled={loading || unread === 0}>
-              <IconChecks size={17} aria-hidden />
-              {l.allRead}
-            </button>
-          </div>
-        </div>
+        </Group>
+        <Group gap="xs">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={reload}
+            disabled={loading}
+            leftSection={<IconRefresh size={16} />}
+          >
+            {loading ? l.refreshing : l.refresh}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={markAllRead}
+            disabled={loading || unread === 0}
+            leftSection={<IconChecks size={16} />}
+          >
+            {l.allRead}
+          </Button>
+        </Group>
+      </Group>
 
-        {message ? <p className="admin-status-message" role="status">{message}</p> : null}
+      {message && <Alert role="status">{message}</Alert>}
 
-        <ul className="admin-audit-list">
+      {notifications.length === 0 ? (
+        <Alert color="gray" title={l.empty} />
+      ) : (
+        <Stack gap="xs">
           {notifications.map((notification) => (
-            <li key={notification.id} className={notification.read ? "" : "is-unread"}>
-              <strong>{t.notificationTypes[notification.type] ?? TYPE_LABELS[notification.type] ?? notification.type}</strong>
-              <span>{notification.title}</span>
-              <span>
-                {new Date(notification.createdAt).toLocaleString(locale === "es" ? "es-US" : "en-US")}
-                {notification.request ? ` · ${notification.request.name} (${notification.request.status})` : ""}
-              </span>
-              <button
-                type="button"
-                className="admin-button-secondary admin-button-small"
+            <Group
+              key={notification.id}
+              gap="sm"
+              p="xs"
+              style={{
+                border: `1px solid var(--line)`,
+                borderRadius: "var(--mantine-radius-sm, 4px)",
+                backgroundColor: notification.read ? "transparent" : "var(--mist)",
+              }}
+            >
+              <div style={{flex: 1, minWidth: 0}}>
+                <div style={{fontWeight: 600}}>
+                  {t.notificationTypes[notification.type] ?? TYPE_LABELS[notification.type] ?? notification.type}
+                </div>
+                <div style={{fontSize: "0.9rem"}}>{notification.title}</div>
+                <div style={{fontSize: "0.85rem", color: "var(--muted)", marginTop: "0.25rem"}}>
+                  {new Date(notification.createdAt).toLocaleString(locale === "es" ? "es-ES" : "en-US")}
+                  {notification.request ? ` · ${notification.request.name} (${notification.request.status})` : ""}
+                </div>
+              </div>
+              <Button
+                variant="subtle"
+                size="xs"
                 onClick={() => markRead(notification.id, !notification.read)}
+                leftSection={<IconCheck size={14} />}
               >
-                <IconCheck size={15} aria-hidden />
                 {notification.read ? l.markUnread : l.markRead}
-              </button>
-            </li>
+              </Button>
+            </Group>
           ))}
-          {notifications.length === 0 ? (
-            <li><span className="admin-empty">{l.empty}</span></li>
-          ) : null}
-        </ul>
-      </section>
-    </div>
+        </Stack>
+      )}
+    </Stack>
   );
 }
