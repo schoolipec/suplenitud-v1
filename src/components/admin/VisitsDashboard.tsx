@@ -1,3 +1,5 @@
+"use client";
+
 import {Button, Group, Stack, Badge, Card, SimpleGrid, Text, Alert} from "@mantine/core";
 import {IconChartBar, IconGlobe, IconMapPin, IconUsers} from "@tabler/icons-react";
 
