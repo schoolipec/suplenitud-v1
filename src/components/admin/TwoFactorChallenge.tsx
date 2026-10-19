@@ -3,8 +3,10 @@
 import {FormEvent, useState} from "react";
 import {useRouter} from "next/navigation";
 import {authClient} from "@/lib/auth-client";
+import {useAdminShell} from "@/components/admin/AdminShellProvider";
 
 export function TwoFactorChallenge() {
+  const {locale} = useAdminShell(); const l = locale === "es" ? {error:"El código de verificación no es válido. Inténtalo de nuevo.", label:"Código de autenticación", verifying:"Verificando…", verify:"Verificar y continuar"} : {error:"The verification code is not valid. Try again.", label:"Authentication code", verifying:"Verifying…", verify:"Verify and continue"};
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,9 +17,9 @@ export function TwoFactorChallenge() {
     const code = String(new FormData(event.currentTarget).get("code") ?? "").replace(/\s/g, "");
     const result = await authClient.twoFactor.verifyTotp({code});
     setLoading(false);
-    if (result.error) { setError("The verification code is not valid. Try again."); return; }
+    if (result.error) { setError(l.error); return; }
     router.replace("/admin"); router.refresh();
   }
 
-  return <form className="admin-auth-form" onSubmit={onSubmit}><label htmlFor="two-factor-code">Authentication code</label><input id="two-factor-code" name="code" inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" maxLength={6} required /><button type="submit" disabled={loading}>{loading ? "Verifying…" : "Verify and continue"}</button>{error ? <p role="alert">{error}</p> : null}</form>;
+  return <form className="admin-auth-form" onSubmit={onSubmit}><label htmlFor="two-factor-code">{l.label}</label><input id="two-factor-code" name="code" inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" maxLength={6} required /><button type="submit" disabled={loading}>{loading ? l.verifying : l.verify}</button>{error ? <p role="alert">{error}</p> : null}</form>;
 }
