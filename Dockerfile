@@ -20,4 +20,4 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=dependencies /app/node_modules/nodemailer ./node_modules/nodemailer
 COPY --from=builder /app/.next/static ./.next/static
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["node", ".next/standalone/server.js"]
