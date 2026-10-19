@@ -75,6 +75,7 @@ assert.doesNotMatch(blessingSource, /30000/, "El retardo debe declararse como co
 assert.match(blessingSource, /if \(optOut\) writeStorage\(disabledKey, "true"\)/);
 assert.match(blessingSource, /readStorage\(disabledKey\) === "true"/);
 assert.doesNotMatch(blessingSource, /lastClosed|redisplayDelay/);
+assert.match(blessingSource, /blessingPreview/);
 
 // La explicacion de opt-out solo se muestra con el checkbox marcado.
 assert.match(blessingSource, /\{optOut \? \([\s\S]*?blessing-opt-out-notice[\s\S]*?\) : null\}/);

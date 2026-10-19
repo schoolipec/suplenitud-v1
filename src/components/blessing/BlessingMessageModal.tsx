@@ -81,7 +81,9 @@ export function BlessingMessageModal({locale}: {locale: string}) {
   const noticeId = useId();
 
   useEffect(() => {
-    if (readStorage(disabledKey) === "true") return;
+    // Solo para comprobación explícita en demo: no altera la preferencia guardada.
+    const preview = new URLSearchParams(window.location.search).get("blessingPreview") === "1";
+    if (!preview && readStorage(disabledKey) === "true") return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
