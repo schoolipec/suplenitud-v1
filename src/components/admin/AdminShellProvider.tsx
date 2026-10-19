@@ -4,6 +4,7 @@ import {createContext, useContext, useMemo, useState, useTransition} from "react
 import {useRouter} from "next/navigation";
 import type {ReactNode} from "react";
 import {adminMessages, type AdminLocale, type AdminMessages} from "@/i18n/admin-shell";
+import {AdminLocaleBridge} from "@/components/admin/AdminLocaleBridge";
 
 type AdminShellContextValue = {
   locale: AdminLocale;
@@ -44,7 +45,7 @@ export function AdminShellProvider({initialLocale, children}: {initialLocale: Ad
     };
   }, [locale, switching, router]);
 
-  return <AdminShellContext.Provider value={value}>{children}</AdminShellContext.Provider>;
+  return <AdminShellContext.Provider value={value}><AdminLocaleBridge locale={locale} />{children}</AdminShellContext.Provider>;
 }
 
 export function useAdminShell(): AdminShellContextValue {
