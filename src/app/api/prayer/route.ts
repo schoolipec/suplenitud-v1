@@ -6,10 +6,24 @@ import {validatePrayerRequest} from "@/lib/prayer-validation";
 import {publicPrayerRequestsEnabled} from "@/lib/public-features";
 import {selectPrayerAlertRecipients} from "@/lib/prayer-recipients";
 import {getAdminUrl} from "@/lib/admin-url";
+import {checkRateLimit, getClientIp} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   if (!publicPrayerRequestsEnabled) {
     return NextResponse.json({error: "not_found"}, {status: 404});
+  }
+
+  // Rate limit: 5 requests per 15 minutes per IP
+  const ip = getClientIp(request);
+  const rateLimit = checkRateLimit(`prayer:${ip}`, 5, 15 * 60);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      {error: "rate_limit_exceeded", resetAt: rateLimit.resetAt.toISOString()},
+      {
+        status: 429,
+        headers: {"Retry-After": Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000).toString()},
+      }
+    );
   }
 
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;

@@ -2,8 +2,22 @@ import {NextRequest, NextResponse} from "next/server";
 import {prisma} from "@/lib/db/client";
 import {supportedLocales} from "@/content/locale-copy";
 import {blessingPriorityOverrideThreshold, fallbackVerses, selectDailyIndex} from "@/lib/blessing/daily-verse";
+import {checkRateLimit, getClientIp} from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
+  // Rate limit: 100 requests per minute per IP (generous for public endpoint)
+  const ip = getClientIp(request);
+  const rateLimit = checkRateLimit(`blessing:${ip}`, 100, 60);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      {error: "rate_limit_exceeded", resetAt: rateLimit.resetAt.toISOString()},
+      {
+        status: 429,
+        headers: {"Retry-After": Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000).toString()},
+      }
+    );
+  }
+
   const requestedLocale = request.nextUrl.searchParams.get("locale") ?? "en";
   const locale = supportedLocales.includes(requestedLocale as (typeof supportedLocales)[number]) ? requestedLocale : "en";
   const fallback = fallbackVerses[locale] ?? fallbackVerses.en;
