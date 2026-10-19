@@ -480,6 +480,9 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
 }
 .bible-container {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
   border-radius: 1.15rem;
   padding: clamp(0.45rem, 1.2vw, 0.75rem);
   background: linear-gradient(145deg, #182638 0%, #0d1522 55%, #070d17 100%);
@@ -499,11 +502,12 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   position: absolute;
   top: -0.45rem;
   left: 51.5%;
-  transform: translateX(-50%);
+  margin-left: -0.725rem;
   z-index: 15;
   width: 1.45rem;
   height: 5.4rem;
   pointer-events: none;
+  transform-origin: top center;
   background: linear-gradient(to right, #7a1212 0%, #ba2020 42%, #8c1616 100%);
   box-shadow: 2px 6px 14px rgba(0, 0, 0, 0.45);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
@@ -521,8 +525,10 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
 .bible-pages {
   display: grid;
   grid-template-columns: 1fr 1.4rem 1fr;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-radius: .75rem;
-  overflow: hidden;
   background: #fbf7ee;
   box-shadow: inset 0 0 35px rgba(110, 80, 40, 0.15);
 }
@@ -576,13 +582,24 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   letter-spacing: .18em;
   text-transform: uppercase;
   font-weight: 800;
-  color: #87682f;
+  color: #6f5424;
 }
-.bible-sacred-symbol {
-  color: #9c2424;
-  font-size: .95rem;
-  font-weight: 700;
+.bible-cross {
+  position: relative;
+  display: inline-block;
+  width: .85rem;
+  height: 1rem;
+  flex: 0 0 auto;
 }
+.bible-cross::before,
+.bible-cross::after {
+  content: "";
+  position: absolute;
+  background: #9c2424;
+  border-radius: 1px;
+}
+.bible-cross::before { left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); }
+.bible-cross::after { top: 28%; left: 0; right: 0; height: 2px; }
 .bible-header-right {
   justify-content: space-between;
 }
@@ -591,10 +608,7 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   letter-spacing: .14em;
   text-transform: uppercase;
   font-weight: 800;
-  color: #87682f;
-}
-.bible-book-icon {
-  font-size: .95rem;
+  color: #6f5424;
 }
 .bible-left-content {
   display: flex;
@@ -602,7 +616,7 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   justify-content: center;
   flex: 1;
 }
-.bible-word-title {
+.modal-bible .bible-word-title {
   margin: 0 0 .4rem;
   font-size: clamp(1.25rem, 2.3vw, 1.6rem);
   font-weight: 700;
@@ -622,8 +636,12 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   height: 1px;
   background: linear-gradient(to right, transparent, #b88e40, transparent);
 }
-.bible-ornament-leaf {
-  font-size: 1rem;
+.bible-ornament-mark {
+  width: .42rem;
+  height: .42rem;
+  background: #b88e40;
+  transform: rotate(45deg);
+  flex: 0 0 auto;
 }
 .bible-devotional-text {
   margin: 0;
@@ -685,8 +703,12 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   font-size: .85rem;
   font-style: normal;
 }
-.bible-right-footer {
+.bible-actions {
+  display: grid;
+  gap: .75rem;
   margin-top: .6rem;
+  padding-top: .9rem;
+  border-top: 1px solid rgba(184, 142, 64, 0.35);
 }
 .bible-amen-button {
   display: inline-flex;
@@ -719,33 +741,39 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   outline-offset: 2px;
 }
 .bible-opt-out {
-  color: #5a4f42;
-  font-size: .86rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  width: 100%;
+  color: #3d342b;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: .9rem;
   font-weight: 600;
-  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.4;
 }
 .bible-opt-out input {
-  border-color: #b88e40;
+  margin-top: .12rem;
+  border-color: #7a5b22;
 }
 .bible-opt-out input:checked {
   background: #b88e40;
-  border-color: #b88e40;
+  border-color: #7a5b22;
 }
-.bible-opt-out input:checked::before {
-  border-color: #fff;
+.bible-opt-out input::before {
+  border-color: #10202f;
 }
 .bible-opt-out input:focus-visible {
-  outline: 2px solid #b88e40;
+  outline: 3px solid #b88e40;
   outline-offset: 2px;
 }
 .bible-opt-out-notice {
-  margin-top: .5rem;
+  margin: 0;
   padding: .6rem .75rem;
   border-left: 3px solid #b88e40;
   border-radius: 0 .4rem .4rem 0;
   background: rgba(184, 142, 64, 0.12);
-  color: #5c4e3a;
-  font-size: .84rem;
+  color: #4a3d2b;
+  font-size: .85rem;
   font-style: italic;
   line-height: 1.45;
 }
@@ -763,9 +791,9 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
   }
 }
 @keyframes bible-ribbon-sway {
-  0% { transform: translateX(-50%) rotate(12deg); }
-  50% { transform: translateX(-50%) rotate(-6deg); }
-  100% { transform: translateX(-50%) rotate(0deg); }
+  0% { transform: rotate(12deg); }
+  50% { transform: rotate(-6deg); }
+  100% { transform: rotate(0deg); }
 }
 @media (prefers-reduced-motion: reduce) {
   .bible-container, .bible-ribbon {
@@ -775,18 +803,34 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
 }
 @media (max-width: 760px) {
   .modal-content.modal-bible {
-    top: 50%;
-    bottom: auto;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(calc(100% - 1.5rem), 32rem);
-    max-height: calc(100vh - 2rem);
+    top: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    max-height: none;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    padding-top: 2.75rem;
     border-radius: 1rem;
     border: none;
-    overflow-y: auto;
+    overflow: hidden;
+  }
+  .modal-bible .modal-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .modal-bible .bible-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
   }
   .modal-bible .bible-pages {
     grid-template-columns: 1fr;
+    min-height: 0;
   }
   .modal-bible .bible-spine {
     display: none;
@@ -806,15 +850,15 @@ fieldset.prayer-field > legend { padding: 0; margin-bottom: .45rem; font-weight:
     background: #fbf7ee;
     box-shadow: none;
   }
+  .modal-bible .bible-cross {
+    display: none;
+  }
   .modal-bible .bible-ribbon {
-    left: 1.85rem;
-    transform: none;
-    height: 3.5rem;
-    width: 1.15rem;
+    display: none;
   }
   .modal-bible .modal-header {
-    top: -0.5rem;
-    right: -0.5rem;
+    top: .2rem;
+    right: .2rem;
   }
   @keyframes bible-modal-open {
     0% { opacity: 0; transform: scale(0.95); }
