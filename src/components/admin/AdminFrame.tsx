@@ -3,6 +3,7 @@ import {cookies, headers} from "next/headers";
 import {AdminSidebar} from "@/components/admin/AdminSidebar";
 import {AdminHeader} from "@/components/admin/AdminHeader";
 import {AdminShellProvider} from "@/components/admin/AdminShellProvider";
+import {AdminMantineProvider} from "@/components/admin/AdminMantineProvider";
 import {auth} from "@/lib/auth";
 import {canViewPrayerRequests} from "@/lib/access";
 import {ADMIN_LANGUAGE_COOKIE, resolveAdminLocale} from "@/i18n/admin-shell";
@@ -18,15 +19,17 @@ export async function AdminFrame({roles, children}: {roles: string[]; children: 
   const environment = process.env.ADMIN_ENVIRONMENT === "demo" ? "Demo" : null;
 
   return (
-    <AdminShellProvider initialLocale={locale}>
-      <IdleTimeoutGuard />
-      <main className="admin-panel" lang={locale}>
-        <AdminSidebar roles={roles} />
-        <section className="admin-workspace">
-          <AdminHeader roles={roles} userName={userName} canViewNotifications={canViewNotifications} environment={environment} />
-          <div className="admin-workspace-body">{children}</div>
-        </section>
-      </main>
-    </AdminShellProvider>
+    <AdminMantineProvider>
+      <AdminShellProvider initialLocale={locale}>
+        <IdleTimeoutGuard />
+        <main className="admin-panel" lang={locale}>
+          <AdminSidebar roles={roles} />
+          <section className="admin-workspace">
+            <AdminHeader roles={roles} userName={userName} canViewNotifications={canViewNotifications} environment={environment} />
+            <div className="admin-workspace-body">{children}</div>
+          </section>
+        </main>
+      </AdminShellProvider>
+    </AdminMantineProvider>
   );
 }
