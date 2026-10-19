@@ -2,6 +2,9 @@
 
 import {FormEvent, useCallback, useEffect, useRef, useState} from "react";
 import {
+  TextInput, Select, Button, Checkbox, Dialog, Stack, Group, Table, Alert, Badge
+} from "@mantine/core";
+import {
   IconBan,
   IconCheck,
   IconChevronDown,
@@ -14,7 +17,6 @@ import {
   IconUserCheck,
   IconUserOff,
 } from "@tabler/icons-react";
-import {Modal} from "@/components/ui/Modal";
 import {AdminPagination} from "@/components/admin/AdminPagination";
 import {useAdminShell} from "@/components/admin/AdminShellProvider";
 import type {AdminUsersResult} from "@/lib/admin-users-query";
@@ -101,26 +103,19 @@ function SortHeader({
   field,
   sort,
   onSort,
-  className,
 }: {
   label: string;
   field: SortField;
   sort: {field: SortField; direction: SortDirection};
   onSort: (field: SortField) => void;
-  className?: string;
 }) {
   const active = sort.field === field;
-  const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : "none";
   return (
-    <th scope="col" className={className} aria-sort={ariaSort}>
-      <button type="button" className={`admin-sort-button${active ? " is-active" : ""}`} onClick={() => onSort(field)}>
-        <span>{label}</span>
-        <span aria-hidden className="admin-sort-indicator">{active ? (sort.direction === "asc" ? "▲" : "▼") : "↕"}</span>
-        <span className="admin-sr-only">
-          {active ? (sort.direction === "asc" ? "sorted ascending" : "sorted descending") : "not sorted"}
-        </span>
+    <Table.Th style={{cursor: "pointer"}}>
+      <button type="button" style={{background: "none", border: "none", cursor: "pointer", fontWeight: active ? 600 : 400}} onClick={() => onSort(field)}>
+        {label} {active ? (sort.direction === "asc" ? "▲" : "▼") : ""}
       </button>
-    </th>
+    </Table.Th>
   );
 }
 
@@ -212,8 +207,6 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
   }, [query]);
 
   useEffect(() => {
-    // The mount query is already applied server-side through initialData; only a
-    // real change to page/filters/sort triggers a client-side refetch.
     const signature = querySignature({
       page,
       pageSize,
@@ -274,7 +267,6 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
     const email = String(data.email ?? form.get("email") ?? "");
     formEl.reset();
     setCreating(false);
-    // The result modal is shown first so a failed refresh never hides the outcome.
     setResultModal({email, emailSent: Boolean(data.emailSent), emailReason: data.emailReason, mode: "create"});
     setLoading(true);
     const refreshed = await loadUsers();
@@ -329,7 +321,6 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
         emailReason: data.emailReason,
         mode: "resend",
       });
-      // Refresh best-effort; the resend already rotated the token server-side.
       setLoading(true);
       await loadUsers(pagination.page);
     } else {
@@ -393,441 +384,272 @@ export function UserManagement({currentUserId, initialData}: {currentUserId?: st
     await loadUsers(pagination.page);
   }
 
+  const editingUser = users.find((u) => u.id === editingId);
+
   return (
-    <div className="admin-users">
-      <section className="admin-section">
-        <div className="admin-section-heading">
+    <Stack gap="lg">
+      <div>
+        <Group justify="space-between" wrap="wrap">
           <div>
-            <h2>{l.title}</h2>
-            <p>{l.subtitle}</p>
+            <h2 style={{margin: "0 0 0.5rem"}}>{l.title}</h2>
+            <p style={{margin: 0, color: "var(--muted)", fontSize: "0.9rem"}}>{l.subtitle}</p>
           </div>
-          <div className="admin-section-actions">
-            <button type="button" className="admin-button-secondary" onClick={() => reload(pagination.page)} disabled={loading}>
-              <IconRefresh size={17} aria-hidden />
+          <Group gap="xs">
+            <Button
+              variant="outline"
+              size="sm"
+              leftSection={<IconRefresh size={16} />}
+              onClick={() => reload(pagination.page)}
+              disabled={loading}
+            >
               {loading ? l.refreshing : l.refresh}
-            </button>
-            <button type="button" className="admin-button-primary" onClick={() => { setCreating((open) => !open); setEditingId(null); }} aria-expanded={creating}>
-              <IconPlus size={17} aria-hidden />
+            </Button>
+            <Button
+              size="sm"
+              leftSection={<IconPlus size={16} />}
+              onClick={() => { setCreating((open) => !open); setEditingId(null); }}
+            >
               {l.create}
-            </button>
+            </Button>
+          </Group>
+        </Group>
+      </div>
+
+      {message && <Alert role="status">{message}</Alert>}
+
+      {creating && (
+        <Stack gap="md" p="md" style={{border: "1px solid var(--line)", borderRadius: "4px", backgroundColor: "var(--mist)"}}>
+          <div>
+            <h3 style={{margin: 0}}>Create user</h3>
+            <p style={{margin: "0.5rem 0 0", color: "var(--muted)", fontSize: "0.9rem"}}>No password is set here. The person receives a single-use invitation link (valid 24 hours) to choose their own password.</p>
           </div>
-        </div>
+          <form onSubmit={onCreate}>
+            <Stack gap="md">
+              <TextInput label="Name" name="name" required minLength={2} />
+              <TextInput label="Email" name="email" type="email" required />
+              <Select label="Role" name="role" data={[
+                {value: "ADMIN", label: "Admin"},
+                {value: "TREASURER", label: "Treasurer"},
+                {value: "USHER", label: "Usher — no panel access"},
+              ]} defaultValue="ADMIN" />
+              <Group justify="flex-end" gap="sm">
+                <Button variant="outline" onClick={() => setCreating(false)}>Cancel</Button>
+                <Button type="submit" disabled={saving}>{saving ? "Creating…" : "Create user"}</Button>
+              </Group>
+            </Stack>
+          </form>
+        </Stack>
+      )}
 
-        {message ? <p className="admin-status-message" role="status">{message}</p> : null}
+      {editingId && editingUser && (
+        <Stack gap="md" p="md" style={{border: "1px solid var(--line)", borderRadius: "4px", backgroundColor: "var(--mist)"}}>
+          <h3 style={{margin: 0}}>Edit {editingUser.name}</h3>
+          <form onSubmit={onEdit}>
+            <Stack gap="md">
+              <TextInput label="Name" name="name" defaultValue={editingUser.name} required minLength={2} />
+              {editingUser.roles.includes("SUPER_ADMIN") ? (
+                <TextInput label="Role" value="Super admin" disabled />
+              ) : (
+                <Select label="Role" name="role" data={[
+                  {value: "ADMIN", label: "Admin"},
+                  {value: "TREASURER", label: "Treasurer"},
+                  {value: "USHER", label: "Usher — no panel access"},
+                ]} defaultValue={editingUser.roles[0] ?? "ADMIN"} />
+              )}
+              {editingUser.roles.includes("ADMIN") && !editingUser.roles.includes("SUPER_ADMIN") && (
+                <Stack gap="sm" style={{backgroundColor: "var(--tint)", padding: "1rem", borderRadius: "4px"}}>
+                  <h4 style={{margin: 0}}>Prayer request alerts</h4>
+                  <Checkbox name="prayerTelegramAlertsEnabled" label="Receive prayer requests via Telegram" defaultChecked={editingUser.prayerTelegramAlertsEnabled} disabled={saving} />
+                  <Checkbox name="prayerEmailCopiesEnabled" label="Receive prayer request copies via email" defaultChecked={editingUser.prayerEmailCopiesEnabled} disabled={saving} />
+                </Stack>
+              )}
+              <Group justify="flex-end" gap="sm">
+                <Button variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+                <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
+              </Group>
+            </Stack>
+          </form>
+        </Stack>
+      )}
 
-        {creating ? (
-          <div className="admin-panel-box">
-            <h3>Create user</h3>
-            <p>No password is set here. The person receives a single-use invitation link (valid 24 hours) to choose their own password. The account cannot sign in until then.</p>
-            <form onSubmit={onCreate} className="admin-auth-form admin-form-grid">
-              <div>
-                <label htmlFor="user-name">Name</label>
-                <input id="user-name" name="name" required minLength={2} />
-              </div>
-              <div>
-                <label htmlFor="user-email">Email</label>
-                <input id="user-email" name="email" type="email" required />
-              </div>
-              <div>
-                <label htmlFor="user-role">Role</label>
-                <select id="user-role" name="role" defaultValue="ADMIN">
-                  <option value="ADMIN">Admin</option>
-                  <option value="TREASURER">Treasurer</option>
-                  <option value="USHER">Usher — no panel access</option>
-                </select>
-              </div>
-              <div className="admin-form-actions admin-form-actions-split">
-                <button type="button" className="admin-button-danger" onClick={() => setCreating(false)}>Cancel</button>
-                <button type="submit" disabled={saving}>{saving ? "Creating…" : "Create user"}</button>
-              </div>
-            </form>
-          </div>
-        ) : null}
+      {loading && users.length === 0 ? <Alert>Loading users…</Alert> : null}
 
-        {editingId ? (
-          <div className="admin-panel-box">
-            <h3>Edit {editingId ? users.find((u) => u.id === editingId)?.name ?? "" : ""}</h3>
-            <form onSubmit={onEdit} className="admin-auth-form admin-form-grid">
-              <div>
-                <label htmlFor="edit-user-name">Name</label>
-                <input id="edit-user-name" name="name" defaultValue={editingId ? users.find((u) => u.id === editingId)?.name ?? "" : ""} required minLength={2} />
-              </div>
-              <div>
-                <label htmlFor="edit-user-role">Role</label>
-                {(users.find((u) => u.id === editingId)?.roles ?? []).includes("SUPER_ADMIN") ? (
-                  <>
-                    <input value="Super admin" readOnly aria-readonly="true" />
-                    <p className="admin-field-note">The Super admin role cannot be changed from this screen.</p>
-                  </>
-                ) : (
-                  <select id="edit-user-role" name="role" defaultValue={(users.find((u) => u.id === editingId)?.roles ?? [])[0] ?? "ADMIN"}>
-                    <option value="ADMIN">Admin</option>
-                    <option value="TREASURER">Treasurer</option>
-                    <option value="USHER">Usher — no panel access</option>
-                  </select>
-                )}
-              </div>
-              {editingId && !(users.find((u) => u.id === editingId)?.roles ?? []).includes("SUPER_ADMIN") && (users.find((u) => u.id === editingId)?.roles ?? []).includes("ADMIN") ? (
-                <div className="admin-alert-preferences">
-                  <h4>Alertas de peticiones de oración</h4>
-                  <p className="admin-field-note">El usuario activa sus propios avisos desde Settings. Aquí puede ajustarlos por él.</p>
-                  <label className="admin-alert-toggle">
-                    <input
-                      type="checkbox"
-                      name="prayerTelegramAlertsEnabled"
-                      defaultChecked={users.find((u) => u.id === editingId)?.prayerTelegramAlertsEnabled ?? false}
-                      disabled={saving}
-                    />
-                    <span>
-                      <strong>Recibir peticiones de oración por Telegram</strong>
-                      <small>Requiere un ID de Telegram configurado por el usuario.</small>
-                    </span>
-                  </label>
-                  <label className="admin-alert-toggle">
-                    <input
-                      type="checkbox"
-                      name="prayerEmailCopiesEnabled"
-                      defaultChecked={users.find((u) => u.id === editingId)?.prayerEmailCopiesEnabled ?? false}
-                      disabled={saving}
-                    />
-                    <span>
-                      <strong>Recibir copias por correo de peticiones de oración</strong>
-                      <small>Envía una copia al correo del usuario cuando llega una petición.</small>
-                    </span>
-                  </label>
-                </div>
-              ) : null}
-              <div className="admin-form-actions">
-                <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</button>
-                <button type="button" className="admin-button-ghost" onClick={() => setEditingId(null)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        ) : null}
-
-        {loading && users.length === 0 ? <p>Loading users…</p> : null}
-
-        <div className="admin-toolbar">
-          <div className="admin-toolbar-search">
-            <IconSearch size={17} aria-hidden />
-            <label htmlFor="user-search" className="admin-sr-only">Search users by name or email</label>
-            <input
-              id="user-search"
-              type="search"
-              placeholder={l.search}
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setLoading(true);
-                setPage(1);
-              }}
-            />
-          </div>
-          <div className="admin-toolbar-filters">
-            <label htmlFor="user-role-filter" className="admin-sr-only">Filter by role</label>
-            <select
-              id="user-role-filter"
-              value={roleFilter}
-              onChange={(event) => {
-                setRoleFilter(event.target.value);
-                setLoading(true);
-                setPage(1);
-              }}
-            >
-              <option value="ALL">{l.allRoles}</option>
-              <option value="SUPER_ADMIN">{t.roles.SUPER_ADMIN}</option>
-              <option value="ADMIN">{t.roles.ADMIN}</option>
-              <option value="TREASURER">{t.roles.TREASURER}</option>
-              <option value="USHER">{locale === "es" ? "Ujier" : "Usher"}</option>
-            </select>
-            <label htmlFor="user-status-filter" className="admin-sr-only">Filter by status</label>
-            <select
-              id="user-status-filter"
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value);
-                setLoading(true);
-                setPage(1);
-              }}
-            >
-              <option value="ALL">{l.allStatuses}</option>
-              <option value="active">{l.active}</option>
-              <option value="inactive">{l.inactive}</option>
-            </select>
-            <label htmlFor="user-page-size">{l.rows}</label>
-            <select
-              id="user-page-size"
-              value={pageSize}
-              onChange={(event) => {
-                setPageSize(Number(event.target.value));
-                setLoading(true);
-                setPage(1);
-              }}
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>{size}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="admin-table-wrap">
-          <table className="admin-data-table">
-            <thead>
-              <tr>
-                <SortHeader label={l.name} field="name" sort={sort} onSort={handleSort} />
-                <SortHeader label={l.email} field="email" sort={sort} onSort={handleSort} />
-                <th scope="col" className="admin-col-role">{l.role}</th>
-                <SortHeader label={l.status} field="active" sort={sort} onSort={handleSort} />
-                <th scope="col" className="admin-col-2fa">{l.twoFactor}</th>
-                <SortHeader label={l.created} field="createdAt" sort={sort} onSort={handleSort} />
-                <th scope="col" className="admin-col-activity">{l.activity}</th>
-                <th scope="col"><span className="admin-sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => {
-                const expanded = expandedIds.has(user.id);
-                const isSelf = user.id === currentUserId;
-                return (
-                  <UserRow
-                    key={user.id}
-                    user={user}
-                    expanded={expanded}
-                    isSelf={isSelf}
-                    saving={saving}
-                    confirming={confirming}
-                    onToggleExpand={() => toggleExpand(user.id)}
-                    onEdit={() => { setEditingId(user.id); setCreating(false); window.scrollTo({top: 0, behavior: "smooth"}); }}
-                    onConfirm={(action) => setConfirming({id: user.id, action})}
-                    onCancelConfirm={() => setConfirming(null)}
-                    onRunAction={runRowAction}
-                    onRunInvitationAction={runInvitationAction}
-                  />
-                );
-              })}
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan={8}>
-                    <div className="admin-empty">
-                      <p>{l.noUsers}</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-          <AdminPagination
-          pagination={pagination}
-          onPageChange={(target) => {
+      <Group gap="md" wrap="wrap">
+        <TextInput
+          placeholder={l.search}
+          leftSection={<IconSearch size={16} />}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
             setLoading(true);
-            setPage(target);
+            setPage(1);
           }}
-          disabled={loading}
+          style={{flex: 1, minWidth: "200px"}}
         />
-        </div>
-      </section>
-
-      {resultModal ? (
-        <Modal
-          open
-          onOpenChange={(open) => {
-            if (!open) setResultModal(null);
+        <Select
+          placeholder={l.allRoles}
+          data={[
+            {value: "ALL", label: l.allRoles},
+            {value: "SUPER_ADMIN", label: t.roles.SUPER_ADMIN},
+            {value: "ADMIN", label: t.roles.ADMIN},
+            {value: "TREASURER", label: t.roles.TREASURER},
+            {value: "USHER", label: locale === "es" ? "Ujier" : "Usher"},
+          ]}
+          value={roleFilter}
+          onChange={(value) => {
+            setRoleFilter(value || "ALL");
+            setLoading(true);
+            setPage(1);
           }}
-          title={invitationResultCopy(resultModal).title}
-          closeLabel="Close result"
-          showCloseButton={false}
-          dismissable={false}
-        >
-          <p className="modal-description">{invitationResultCopy(resultModal).body}</p>
-          {!resultModal.emailSent && resultModal.emailReason && emailReasonLabels[resultModal.emailReason] ? (
-            <p className="admin-field-note">{emailReasonLabels[resultModal.emailReason]}</p>
-          ) : null}
-          <div className="modal-actions">
-            <button type="button" className="button" onClick={() => setResultModal(null)}>
-              Close
-            </button>
-          </div>
-        </Modal>
-      ) : null}
-    </div>
-  );
-}
+          style={{minWidth: "150px"}}
+        />
+        <Select
+          placeholder={l.allStatuses}
+          data={[
+            {value: "ALL", label: l.allStatuses},
+            {value: "active", label: l.active},
+            {value: "inactive", label: l.inactive},
+          ]}
+          value={statusFilter}
+          onChange={(value) => {
+            setStatusFilter(value || "ALL");
+            setLoading(true);
+            setPage(1);
+          }}
+          style={{minWidth: "150px"}}
+        />
+        <Select
+          label={l.rows}
+          data={PAGE_SIZE_OPTIONS.map((size) => ({value: String(size), label: String(size)}))}
+          value={String(pageSize)}
+          onChange={(value) => {
+            setPageSize(Number(value));
+            setLoading(true);
+            setPage(1);
+          }}
+          style={{minWidth: "100px"}}
+        />
+      </Group>
 
-function UserRow({
-  user,
-  expanded,
-  isSelf,
-  saving,
-  confirming,
-  onToggleExpand,
-  onEdit,
-  onConfirm,
-  onCancelConfirm,
-  onRunAction,
-  onRunInvitationAction,
-}: {
-  user: ManagedUser;
-  expanded: boolean;
-  isSelf: boolean;
-  saving: boolean;
-  confirming: {id: string; action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke"} | null;
-  onToggleExpand: () => void;
-  onEdit: () => void;
-  onConfirm: (action: "deactivate" | "activate" | "forcePassword" | "resend" | "revoke") => void;
-  onCancelConfirm: () => void;
-  onRunAction: (id: string, action: "deactivate" | "activate" | "forcePassword") => void;
-  onRunInvitationAction: (id: string, action: "resend" | "revoke") => void;
-}) {
-  const confirmForThisRow = confirming?.id === user.id ? confirming : null;
-  return (
-    <>
-      <tr>
-        <td data-label="Name">{user.name}</td>
-        <td data-label="Email">{user.email}</td>
-        <td data-label="Role" className="admin-col-role">
-          <span className="admin-badge">{user.roles.map((role) => roleLabels[role] ?? role).join(", ")}</span>
-        </td>
-        <td data-label="Status">
-          <span className={user.active ? "admin-badge admin-badge-success" : "admin-badge admin-badge-danger"}>
-            {user.active ? "Active" : "Deactivated"}
-          </span>
-          {user.pendingInvitation ? (
-            <span className="admin-badge admin-badge-muted" title={`Invitation sent ${formatDate(user.pendingInvitation.createdAt)}, expires ${formatDate(user.pendingInvitation.expiresAt)}`}>
-              Invitation pending
-            </span>
-          ) : null}
-        </td>
-        <td data-label="Two-factor" className="admin-col-2fa">
-          <span className={user.twoFactorEnabled ? "admin-badge admin-badge-success" : "admin-badge admin-badge-muted"}>
-            {user.twoFactorEnabled ? "Active" : "Not configured"}
-          </span>
-        </td>
-        <td data-label="Created">{formatDate(user.createdAt)}</td>
-        <td data-label="Activity" className="admin-col-activity">
-          <span className="admin-activity-cell">Last: {formatDate(user.lastActivityAt)}</span>
-        </td>
-        <td className="admin-col-actions">
-          <div className="admin-row-actions">
-            <button type="button" className="admin-icon-button" onClick={onEdit} aria-label={`Edit ${user.name}`}>
-              <IconPencil size={17} aria-hidden />
-            </button>
-            {!isSelf ? (
-              <>
-                {confirmForThisRow?.action === "forcePassword" ? (
-                  <span className="admin-confirm-inline">
-                    <span>Require new password?</span>
-                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunAction(user.id, "forcePassword")} aria-label="Confirm password change required">
-                      <IconCheck size={17} aria-hidden />
-                    </button>
-                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
-                      <IconBan size={17} aria-hidden />
-                    </button>
-                  </span>
-                ) : (
-                  <button type="button" className="admin-icon-button" onClick={() => onConfirm("forcePassword")} aria-label={`Require password change for ${user.name}`} title="Require password change">
-                    <IconKey size={17} aria-hidden />
-                  </button>
-                )}
-                {user.pendingInvitation && !confirmForThisRow ? (
-                  <>
-                    <button
-                      type="button"
-                      className="admin-button-secondary admin-button-small"
-                      onClick={() => onConfirm("resend")}
-                      disabled={saving}
-                    >
-                      Resend invitation
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-button-ghost admin-button-small"
-                      onClick={() => onConfirm("revoke")}
-                      disabled={saving}
-                    >
-                      Revoke
-                    </button>
-                  </>
-                ) : null}
-                {confirmForThisRow?.action === "resend" ? (
-                  <span className="admin-confirm-inline">
-                    <span>Resend invitation? The previous link stops working.</span>
-                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunInvitationAction(user.id, "resend")} aria-label="Confirm resend invitation">
-                      <IconCheck size={17} aria-hidden />
-                    </button>
-                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
-                      <IconBan size={17} aria-hidden />
-                    </button>
-                  </span>
-                ) : null}
-                {confirmForThisRow?.action === "revoke" ? (
-                  <span className="admin-confirm-inline">
-                    <span>Revoke invitation? The previous link stops working.</span>
-                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunInvitationAction(user.id, "revoke")} aria-label="Confirm revoke invitation">
-                      <IconCheck size={17} aria-hidden />
-                    </button>
-                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
-                      <IconBan size={17} aria-hidden />
-                    </button>
-                  </span>
-                ) : null}
-                {confirmForThisRow?.action === "deactivate" ? (
-                  <span className="admin-confirm-inline">
-                    <span>Deactivate?</span>
-                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunAction(user.id, "deactivate")} aria-label="Confirm deactivation">
-                      <IconCheck size={17} aria-hidden />
-                    </button>
-                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
-                      <IconBan size={17} aria-hidden />
-                    </button>
-                  </span>
-                ) : null}
-                {confirmForThisRow?.action === "activate" ? (
-                  <span className="admin-confirm-inline">
-                    <span>Reactivate?</span>
-                    <button type="button" className="admin-icon-button admin-icon-confirm" disabled={saving} onClick={() => onRunAction(user.id, "activate")} aria-label="Confirm reactivation">
-                      <IconCheck size={17} aria-hidden />
-                    </button>
-                    <button type="button" className="admin-icon-button" onClick={onCancelConfirm} aria-label="Cancel">
-                      <IconBan size={17} aria-hidden />
-                    </button>
-                  </span>
-                ) : null}
-                {!confirmForThisRow ? (
-                  <button
-                    type="button"
-                    className="admin-icon-button"
-                    onClick={() => onConfirm(user.active ? "deactivate" : "activate")}
-                    aria-label={user.active ? `Deactivate ${user.name}` : `Reactivate ${user.name}`}
-                    title={user.active ? "Deactivate" : "Reactivate"}
-                  >
-                    {user.active ? <IconUserOff size={17} aria-hidden /> : <IconUserCheck size={17} aria-hidden />}
-                  </button>
-                ) : null}
-              </>
-            ) : (
-              <span className="admin-self-badge">You</span>
+      <div style={{overflowX: "auto"}}>
+        <Table striped highlightOnHover>
+          <Table.Thead>
+            <Table.Tr>
+              <SortHeader label={l.name} field="name" sort={sort} onSort={handleSort} />
+              <SortHeader label={l.email} field="email" sort={sort} onSort={handleSort} />
+              <Table.Th>{l.role}</Table.Th>
+              <SortHeader label={l.status} field="active" sort={sort} onSort={handleSort} />
+              <Table.Th>{l.twoFactor}</Table.Th>
+              <SortHeader label={l.created} field="createdAt" sort={sort} onSort={handleSort} />
+              <Table.Th>{l.activity}</Table.Th>
+              <Table.Th>Actions</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {users.map((user) => {
+              const expanded = expandedIds.has(user.id);
+              const isSelf = user.id === currentUserId;
+              const confirmForThisRow = confirming?.id === user.id ? confirming : null;
+              return (
+                <Table.Tr key={user.id}>
+                  <Table.Td>{user.name}</Table.Td>
+                  <Table.Td>{user.email}</Table.Td>
+                  <Table.Td><Badge>{user.roles.map((role) => roleLabels[role] ?? role).join(", ")}</Badge></Table.Td>
+                  <Table.Td>
+                    <Group gap="xs">
+                      <Badge color={user.active ? "green" : "red"}>{user.active ? "Active" : "Deactivated"}</Badge>
+                      {user.pendingInvitation && <Badge color="gray">Invitation pending</Badge>}
+                    </Group>
+                  </Table.Td>
+                  <Table.Td><Badge color={user.twoFactorEnabled ? "green" : "gray"}>{user.twoFactorEnabled ? "Active" : "Not configured"}</Badge></Table.Td>
+                  <Table.Td>{formatDate(user.createdAt)}</Table.Td>
+                  <Table.Td>{formatDate(user.lastActivityAt)}</Table.Td>
+                  <Table.Td>
+                    <Group gap="xs">
+                      <Button variant="subtle" size="xs" leftSection={<IconPencil size={14} />} onClick={() => { setEditingId(user.id); setCreating(false); window.scrollTo({top: 0, behavior: "smooth"}); }}>Edit</Button>
+                      {!isSelf && (
+                        <>
+                          {confirmForThisRow?.action === "forcePassword" && (
+                            <Group gap="xs">
+                              <span style={{fontSize: "0.85rem"}}>Require new password?</span>
+                              <Button size="xs" leftSection={<IconCheck size={12} />} onClick={() => runRowAction(user.id, "forcePassword")} disabled={saving} />
+                              <Button size="xs" variant="subtle" leftSection={<IconBan size={12} />} onClick={() => setConfirming(null)} />
+                            </Group>
+                          )}
+                          {!confirmForThisRow && (
+                            <Button variant="subtle" size="xs" leftSection={<IconKey size={14} />} onClick={() => setConfirming({id: user.id, action: "forcePassword"})} title="Require password change" />
+                          )}
+                          {user.pendingInvitation && !confirmForThisRow && (
+                            <>
+                              <Button size="xs" variant="outline" onClick={() => setConfirming({id: user.id, action: "resend"})} disabled={saving}>Resend</Button>
+                              <Button size="xs" variant="subtle" onClick={() => setConfirming({id: user.id, action: "revoke"})} disabled={saving}>Revoke</Button>
+                            </>
+                          )}
+                          {confirmForThisRow?.action === "resend" && (
+                            <Group gap="xs">
+                              <span style={{fontSize: "0.85rem"}}>Resend invitation?</span>
+                              <Button size="xs" leftSection={<IconCheck size={12} />} onClick={() => runInvitationAction(user.id, "resend")} disabled={saving} />
+                              <Button size="xs" variant="subtle" leftSection={<IconBan size={12} />} onClick={() => setConfirming(null)} />
+                            </Group>
+                          )}
+                          {confirmForThisRow?.action === "revoke" && (
+                            <Group gap="xs">
+                              <span style={{fontSize: "0.85rem"}}>Revoke invitation?</span>
+                              <Button size="xs" leftSection={<IconCheck size={12} />} onClick={() => runInvitationAction(user.id, "revoke")} disabled={saving} />
+                              <Button size="xs" variant="subtle" leftSection={<IconBan size={12} />} onClick={() => setConfirming(null)} />
+                            </Group>
+                          )}
+                          {confirmForThisRow?.action === "deactivate" && (
+                            <Group gap="xs">
+                              <span style={{fontSize: "0.85rem"}}>Deactivate?</span>
+                              <Button size="xs" leftSection={<IconCheck size={12} />} onClick={() => runRowAction(user.id, "deactivate")} disabled={saving} />
+                              <Button size="xs" variant="subtle" leftSection={<IconBan size={12} />} onClick={() => setConfirming(null)} />
+                            </Group>
+                          )}
+                          {confirmForThisRow?.action === "activate" && (
+                            <Group gap="xs">
+                              <span style={{fontSize: "0.85rem"}}>Reactivate?</span>
+                              <Button size="xs" leftSection={<IconCheck size={12} />} onClick={() => runRowAction(user.id, "activate")} disabled={saving} />
+                              <Button size="xs" variant="subtle" leftSection={<IconBan size={12} />} onClick={() => setConfirming(null)} />
+                            </Group>
+                          )}
+                          {!confirmForThisRow && (
+                            <Button variant="subtle" size="xs" leftSection={user.active ? <IconUserOff size={14} /> : <IconUserCheck size={14} />} onClick={() => setConfirming({id: user.id, action: user.active ? "deactivate" : "activate"})} />
+                          )}
+                        </>
+                      )}
+                      {isSelf && <span style={{fontSize: "0.85rem", color: "var(--muted)"}}>You</span>}
+                      <Button variant="subtle" size="xs" leftSection={expanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />} onClick={() => toggleExpand(user.id)} />
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })}
+            {users.length === 0 && <Table.Tr><Table.Td colSpan={8}><Alert color="gray">{l.noUsers}</Alert></Table.Td></Table.Tr>}
+          </Table.Tbody>
+        </Table>
+      </div>
+
+      <AdminPagination
+        pagination={pagination}
+        onPageChange={(target) => {
+          setLoading(true);
+          setPage(target);
+        }}
+        disabled={loading}
+      />
+
+      <Dialog opened={resultModal !== null} onClose={() => setResultModal(null)} title={resultModal ? invitationResultCopy(resultModal).title : ""}>
+        {resultModal && (
+          <Stack gap="md">
+            <p>{invitationResultCopy(resultModal).body}</p>
+            {!resultModal.emailSent && resultModal.emailReason && emailReasonLabels[resultModal.emailReason] && (
+              <Alert color="yellow">{emailReasonLabels[resultModal.emailReason]}</Alert>
             )}
-            <button type="button" className="admin-icon-button admin-expand-toggle" onClick={onToggleExpand} aria-expanded={expanded} aria-label={expanded ? `Hide details for ${user.name}` : `Show details for ${user.name}`}>
-              {expanded ? <IconChevronUp size={17} aria-hidden /> : <IconChevronDown size={17} aria-hidden />}
-            </button>
-          </div>
-        </td>
-      </tr>
-      {expanded ? (
-        <tr className="admin-detail-row">
-          <td colSpan={8}>
-            <dl className="admin-user-detail">
-              <div><dt>Created</dt><dd>{formatDate(user.createdAt)}</dd></div>
-              <div><dt>Last activity</dt><dd>{formatDate(user.lastActivityAt)}</dd></div>
-              <div><dt>Two-factor</dt><dd>{user.twoFactorEnabled ? "Active" : "Not configured"}</dd></div>
-              <div><dt>Roles</dt><dd>{user.roles.map((role) => roleLabels[role] ?? role).join(", ")}</dd></div>
-              <div><dt>Status</dt><dd>{user.active ? "Active" : "Deactivated"}</dd></div>
-              <div><dt>Invitation</dt><dd>{user.pendingInvitation ? `Pending — expires ${formatDate(user.pendingInvitation.expiresAt)}` : "Completed or none"}</dd></div>
-            </dl>
-          </td>
-        </tr>
-      ) : null}
-    </>
+            <Button onClick={() => setResultModal(null)}>Close</Button>
+          </Stack>
+        )}
+      </Dialog>
+    </Stack>
   );
 }
