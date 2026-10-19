@@ -6,9 +6,7 @@ import {Modal} from "@/components/ui/Modal";
 type Message = {body: string; reference?: string; title?: string | null};
 
 const disabledKey = "ipec-blessing-messages-disabled";
-const lastClosedKey = "ipec-blessing-message-last-closed";
 const displayDelayMs = 30_000;
-const redisplayDelayMs = 24 * 60 * 60 * 1000;
 
 const copy = {
   en: {
@@ -83,9 +81,7 @@ export function BlessingMessageModal({locale}: {locale: string}) {
   const noticeId = useId();
 
   useEffect(() => {
-    const lastClosedAt = Number(readStorage(lastClosedKey));
-    const isWithinRedisplayDelay = Number.isFinite(lastClosedAt) && Date.now() - lastClosedAt < redisplayDelayMs;
-    if (readStorage(disabledKey) === "true" || isWithinRedisplayDelay) return;
+    if (readStorage(disabledKey) === "true") return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
@@ -112,10 +108,9 @@ export function BlessingMessageModal({locale}: {locale: string}) {
   const t = copy[locale as keyof typeof copy] ?? copy.en;
   const title = message.title || t.verseBadge;
 
-  // Cierre sin opt-out: se oculta 24 horas. Con opt-out: se desactiva de forma permanente.
+  // Solo la decisión explícita de no volver a mostrar se conserva entre visitas.
   const closeMessage = () => {
     if (optOut) writeStorage(disabledKey, "true");
-    writeStorage(lastClosedKey, String(Date.now()));
     setOpen(false);
   };
 

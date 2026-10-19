@@ -68,16 +68,13 @@ assert.match(routeSource, /supportedLocales\.includes/);
 // ---------------------------------------------------------------------------
 const blessingSource = read("src/components/blessing/BlessingMessageModal.tsx");
 assert.match(blessingSource, /const displayDelayMs = 30_000;/);
-assert.match(blessingSource, /const redisplayDelayMs = 24 \* 60 \* 60 \* 1000;/);
 assert.match(blessingSource, /const disabledKey = "ipec-blessing-messages-disabled";/);
-assert.match(blessingSource, /const lastClosedKey = "ipec-blessing-message-last-closed";/);
 assert.doesNotMatch(blessingSource, /30000/, "El retardo debe declararse como constante explicita");
 
-// Cierre: opt-out permanente, si no solo 24 horas.
+// Cierre: el opt-out explícito es la única preferencia persistente.
 assert.match(blessingSource, /if \(optOut\) writeStorage\(disabledKey, "true"\)/);
-assert.match(blessingSource, /writeStorage\(lastClosedKey, String\(Date\.now\(\)\)\)/);
 assert.match(blessingSource, /readStorage\(disabledKey\) === "true"/);
-assert.match(blessingSource, /isWithinRedisplayDelay/);
+assert.doesNotMatch(blessingSource, /lastClosed|redisplayDelay/);
 
 // La explicacion de opt-out solo se muestra con el checkbox marcado.
 assert.match(blessingSource, /\{optOut \? \([\s\S]*?blessing-opt-out-notice[\s\S]*?\) : null\}/);
