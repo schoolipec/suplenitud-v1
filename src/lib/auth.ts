@@ -9,6 +9,11 @@ import {twoFactor} from "better-auth/plugins";
  */
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {provider: "postgresql"}),
+  session: {
+    expiresIn: 60 * 30,   // 30 minutes absolute session lifetime
+    updateAge: 60 * 5,    // refresh session expiry every 5 minutes of activity
+    freshAge: 60 * 5,     // session is "fresh" for 5 minutes after creation
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,

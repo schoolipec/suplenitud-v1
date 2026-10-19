@@ -66,6 +66,7 @@ export type AdminMessages = {
   languageNames: Record<AdminLocale, string>;
   roles: Record<string, string>;
   notificationTypes: Record<string, string>;
+  idleTimeout: {title: string; message: string; staySignedIn: string; signOut: string};
 };
 
 export const adminMessages: Record<AdminLocale, AdminMessages> = {
@@ -146,6 +147,12 @@ export const adminMessages: Record<AdminLocale, AdminMessages> = {
       PENDING_ASSIGNMENT: "Pending assignment",
       ASSIGNMENT_MADE: "Assignment made",
     },
+    idleTimeout: {
+      title: "Session expiring",
+      message: "Your session will expire due to inactivity. Move the mouse or press any key to stay signed in.",
+      staySignedIn: "Stay signed in",
+      signOut: "Sign out now",
+    },
   },
   es: {
     navigation: {
@@ -223,6 +230,12 @@ export const adminMessages: Record<AdminLocale, AdminMessages> = {
       NEW_CONTACT_REQUEST: "Nueva solicitud de contacto",
       PENDING_ASSIGNMENT: "Asignación pendiente",
       ASSIGNMENT_MADE: "Asignación realizada",
+    },
+    idleTimeout: {
+      title: "Sesión por expirar",
+      message: "Tu sesión expirará por inactividad. Mueve el ratón o presiona cualquier tecla para continuar.",
+      staySignedIn: "Continuar sesión",
+      signOut: "Cerrar sesión ahora",
     },
   },
 };

@@ -7,6 +7,7 @@ import {auth} from "@/lib/auth";
 import {canViewPrayerRequests} from "@/lib/access";
 import {ADMIN_LANGUAGE_COOKIE, resolveAdminLocale} from "@/i18n/admin-shell";
 import type {ApplicationRole} from "@/generated/prisma/client";
+import {IdleTimeoutGuard} from "@/components/admin/IdleTimeoutGuard";
 
 export async function AdminFrame({roles, children}: {roles: string[]; children: ReactNode}) {
   const cookieStore = await cookies();
@@ -18,6 +19,7 @@ export async function AdminFrame({roles, children}: {roles: string[]; children: 
 
   return (
     <AdminShellProvider initialLocale={locale}>
+      <IdleTimeoutGuard />
       <main className="admin-panel" lang={locale}>
         <AdminSidebar roles={roles} />
         <section className="admin-workspace">
