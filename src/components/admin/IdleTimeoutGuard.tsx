@@ -1,6 +1,7 @@
 "use client";
 
 import {useCallback, useEffect, useRef} from "react";
+import {useRouter} from "next/navigation";
 import {authClient} from "@/lib/auth-client";
 import {useAdminShell} from "@/components/admin/AdminShellProvider";
 
@@ -14,7 +15,8 @@ const ACTIVITY_EVENTS: (keyof DocumentEventMap)[] = [
 
 export function IdleTimeoutGuard() {
   const {t} = useAdminShell();
-  const lastActivityRef = useRef(Date.now());
+  const router = useRouter();
+  const lastActivityRef = useRef(0);
   const warningShownRef = useRef(false);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
@@ -30,11 +32,12 @@ export function IdleTimeoutGuard() {
     try {
       await authClient.signOut();
     } finally {
-      window.location.href = "/admin/sign-in";
+      router.replace("/admin/sign-in");
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
+    lastActivityRef.current = Date.now();
     const handler = () => { lastActivityRef.current = Date.now(); };
 
     for (const event of ACTIVITY_EVENTS) {

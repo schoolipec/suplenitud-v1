@@ -4,7 +4,7 @@ import {FormEvent, useEffect, useState} from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {TextInput, Button, Checkbox, Stack, Group, Dialog, Alert, Badge, Card, Avatar} from "@mantine/core";
-import {IconBell, IconCheck, IconLock, IconMail, IconPencil, IconPhone, IconSend, IconShieldCheck} from "@tabler/icons-react";
+import {IconBell, IconLock, IconMail, IconPencil, IconPhone, IconSend, IconShieldCheck} from "@tabler/icons-react";
 import {useAdminShell} from "@/components/admin/AdminShellProvider";
 import {authClient} from "@/lib/auth-client";
 

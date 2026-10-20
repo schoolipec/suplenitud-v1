@@ -6,6 +6,8 @@ import {AdminBodyClass} from "@/components/admin/AdminBodyClass";
 import {ScrollToTop} from "@/components/site/ScrollToTop";
 import {PageViewTracker} from "@/components/analytics/PageViewTracker";
 import {publicPrayerRequestsEnabled} from "@/lib/public-features";
+import "@mantine/core/styles.css";
+import "@/styles/AdminStyles.css";
 import "./globals.css";
 
 const geistSans = Geist({
