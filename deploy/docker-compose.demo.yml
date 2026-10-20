@@ -10,6 +10,7 @@ services:
     restart: unless-stopped
     labels:
       traefik.enable: "true"
+      traefik.docker.network: n8n-internal
       traefik.http.routers.suplenitud-demo.entrypoints: websecure
       traefik.http.routers.suplenitud-demo.rule: Host(`demo.suplenitud.com`)
       traefik.http.routers.suplenitud-demo.tls: "true"
