@@ -1,5 +1,6 @@
 services:
   suplenitud-demo:
+    container_name: suplenitud-demo-app
     build:
       context: ..
       dockerfile: Dockerfile
@@ -7,6 +8,13 @@ services:
         PRAYER_REQUESTS_PUBLIC_ENABLED: ${PRAYER_REQUESTS_PUBLIC_ENABLED:-true}
     image: suplenitud-demo-nextjs:local
     restart: unless-stopped
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.suplenitud-demo.entrypoints: websecure
+      traefik.http.routers.suplenitud-demo.rule: Host(`demo.suplenitud.com`)
+      traefik.http.routers.suplenitud-demo.tls: "true"
+      traefik.http.routers.suplenitud-demo.tls.certresolver: letsencrypt
+      traefik.http.services.suplenitud-demo.loadbalancer.server.port: "3000"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -37,8 +45,12 @@ services:
       n8n-internal:
         aliases:
           - suplenitud-demo
+      mailcow-network:
 
 networks:
   n8n-internal:
     external: true
     name: n8n-internal
+  mailcow-network:
+    external: true
+    name: mailcowdockerized_mailcow-network
